@@ -1,0 +1,297 @@
+---
+layout: post
+title: Web Services Federation with ACS v2
+date: 2010-10-05 21:36:34.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Windows Azure AppFabric
+tags: []
+meta:
+  _edit_last: '13661190'
+  _wp_old_slug: ''
+  _oembed_28092e8b10ef0a3555acc79460c6f319: '{{unknown}}'
+  _oembed_dd65c8721e98f5d08251d1278d4ef122: '{{unknown}}'
+  _oembed_1bf0cae40f3f3f0ee3f66d6cf3e0ae0a: '{{unknown}}'
+  _oembed_d64db253e5ac956f52317e5721c44d0f: '{{unknown}}'
+  _oembed_7c39c690633000ecde8abcd71ae7d1be: '{{unknown}}'
+  _oembed_4ad6281ff66e27e1a97815d234c0f4aa: '{{unknown}}'
+  _oembed_8eb0f711788bceb1799256f9fbbe26ce: '{{unknown}}'
+  _oembed_f4ef2d6da43a012c9b52977e88af1fa4: '{{unknown}}'
+  _oembed_1769f2c23d6d3120874b9a72e8db2e0c: '{{unknown}}'
+  _oembed_b6bc43e15797ad0671c0b7319796907e: '{{unknown}}'
+  _oembed_7cc5c97df05282ab394cddfef7794beb: '{{unknown}}'
+  _oembed_bab153b1b3d152acee2e364cef974b9d: '{{unknown}}'
+  _oembed_edc9e6e86dcdfd91f35bb453c83f403c: '{{unknown}}'
+  _oembed_4651cee2fc1face24487f2d63b12652c: '{{unknown}}'
+  _oembed_400adcfc2746546d1106535855d3a29c: '{{unknown}}'
+  _oembed_e73c839b743a3265ec3dbbd5140fb7f5: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Access Control Service v2 is significantly enhanced compared to the first version which only supported OAuth WRAP and Simple Web Tokens. Check out <a href="http://www.dynamic-cast.com/files/2010-08-05-01.php">this post from Hervey</a> for a listing of new exciting features. In this post I’ll talk about integrating ACS v2 with web/workflow services (hosted in Windows Server AppFabric) and show you all the steps involved in this process.</p>
+<p>To start login into <a href="https://portal.appfabriclabs.com/">ACS Portal</a> and create a new namespace:</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb.png" border="0" alt="image" width="189" height="244" /></a></p>
+<p>Once the namespace is activated, click on the manage link to open the ACS management portal:</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image1.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb1.png" border="0" alt="image" width="197" height="244" /></a> </p>
+<p>Switch to “Application Integration” page which list various endpoints exposed by the ACS</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image2.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb2.png" border="0" alt="image" width="244" height="63" /></a></p>
+<p>Copy the URL of the WS-Federation Metadata endpoint in a new browser window and you would get following error.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image3.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb3.png" border="0" alt="image" width="244" height="113" /></a></p>
+<p>So our STS instance needs a signing certificate. This certificate is even required to generate Federation metadata document as it is a signed document.  Let’s add a private key signing certificate.</p>
+<p>Go to “Certificates and Keys” page and add a token signing certificate.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image4.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb4.png" border="0" alt="image" width="244" height="78" /></a></p>
+<p>The command to generate a simple self-signed certificate is listed on the page.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image5.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb5.png" border="0" alt="image" width="244" height="163" /></a></p>
+<p>Now try browsing the Federation metadata and this time you should see the metadata in the browser.</p>
+<p>Next create a new Workflow Service in using the “WCF Workflow Service Application” template</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image6.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb6.png" border="0" alt="image" width="244" height="170" /></a> </p>
+<p>Wizard also generates some basic configuration…</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:3d51884c-4844-4cc9-8595-f45e34483e38" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Code Snippet</div>
+<div style="background:#ddd;max-height:200px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;?</span><span style="color:#a31515;">xml</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">version</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">1.0</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">encoding</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">utf-8</span>"<span style="color:#0000ff;"> ?&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">configuration</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.web</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">compilation</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">debug</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">targetFramework</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">4.0</span>"<span style="color:#0000ff;"> /&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.web</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">          <span style="color:#0000ff;">&lt;!--</span><span style="color:#008000;"> To avoid disclosing metadata information, set the value below to false and remove the metadata endpoint above before deployment </span><span style="color:#0000ff;">--&gt;</span></li>
+<li>          <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceMetadata</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">httpGetEnabled</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">          <span style="color:#0000ff;">&lt;!--</span><span style="color:#008000;"> To receive exception details in faults for debugging purposes, set the value below to true.  Set to false before deployment to avoid disclosing exception information </span><span style="color:#0000ff;">--&gt;</span></li>
+<li>          <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceDebug</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">includeExceptionDetailInFaults</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">false</span>"<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceHostingEnvironment</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">multipleSiteBindingsEnabled</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> /&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.webServer</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">modules</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">runAllManagedModulesForAllRequests</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;">/&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.webServer</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">configuration</span><span style="color:#0000ff;">&gt;</span></li>
+</ol>
+</div>
+</div>
+</div>
+<p> </p>
+<p>ACS v2 fully integrates with Windows Identity Foundation and this integration is done using the WS-Federation Metadata. When you install WIF SDK, it extends Visual Studio with some additional command like “Add STS Reference” etc.</p>
+<p>Right click on the project and Choose the “Add STS Reference” command to launch Federation Utility wizard.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image7.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb7.png" border="0" alt="image" width="244" height="185" /></a> </p>
+<p>Choose the existing STS option and in textbox specify the Federation metadata URL.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image8.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb8.png" border="0" alt="image" width="244" height="185" /></a></p>
+<p>If you have used a self-signed signing certificate you would get “chain validation error” in the next step.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image9.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb9.png" border="0" alt="image" width="244" height="185" /></a></p>
+<p>Disable the “Certificate Chain Validation” and continue to the next step and specify a “Token encryption certificate”</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image10.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb10.png" border="0" alt="image" width="244" height="185" /></a></p>
+<p>Click next to finish the wizard.  The wizard would generate the required configuration to configure this web service to require a SAML token from ACS v2.</p>
+<p>Following are some key configuration changes.</p>
+<ul>
+<li>Default binding for the http scheme is set to ws2007FederationHttpBinding.</li>
+</ul>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:2d58b337-26cb-4e68-8d75-d626d7dee0da" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">protocolMapping</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">scheme</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">ws2007FederationHttpBinding</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">protocolMapping</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<ul>
+<li>WIF is configured on the Web Service using the default service behavior</li>
+</ul>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:573eeec2-08cf-4e6e-9e9a-f0880bd3d042" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">federatedServiceHostConfiguration</span><span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">serviceMetadata</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">httpGetEnabled</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">serviceDebug</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">includeExceptionDetailInFaults</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">false</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">serviceCredentials</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;!--</span><span style="color:#008000;">Certificate added by FedUtil.  Subject='CN=localhost', Issuer='CN=Root Agency'.</span><span style="color:#0000ff;">--&gt;</span><br />
+<span style="color:#0000ff;">      &lt;</span><span style="color:#a31515;">serviceCertificate</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">findValue</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">F7AD5A9DCC35F21FFC691925515F48EB44F5E07A</span>"<span style="color:#0000ff;"> </span><br />
+<span style="color:#0000ff;">                          </span><span style="color:#ff0000;">storeLocation</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">LocalMachine</span>"<span style="color:#0000ff;"> </span><br />
+<span style="color:#0000ff;">                          </span><span style="color:#ff0000;">storeName</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">My</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">x509FindType</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">FindByThumbprint</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">serviceCredentials</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;/</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p> </p>
+<p>Default ws2007FederationHttpBinding is configured to require token from ACS v2</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:1abb4b80-c7b8-472a-865a-8c8932d33f34" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">ws2007FederationHttpBinding</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">security</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">mode</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">Message</span>"<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;</span><span style="color:#a31515;">message</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;</span><span style="color:#a31515;">issuerMetadata</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/mex</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">        &lt;</span><span style="color:#a31515;">claimTypeRequirements</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">          &lt;!--</span><span style="color:#008000;">Following are the claims offered by STS 'https://alpha2.accesscontrol.appfabriclabs.com/'. </span><br />
+<span style="color:#008000;">          &lt;add claimType="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" isOptional="true" /&gt;</span><br />
+<span style="color:#008000;">          &lt;add claimType="http://schemas.microsoft.com/ws/2008/06/identity/claims/role" isOptional="true" /&gt;</span><br />
+<span style="color:#008000;">          &lt;!--&lt;add claimType="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" isOptional="true" /&gt;</span><span style="color:#0000ff;">--&gt;</span><br />
+<span style="color:#0000ff;">          &lt;!--</span><span style="color:#008000;">&lt;add claimType="http://schemas.microsoft.com/accesscontrolservice/2010/07/claims/identityprovider" isOptional="true" /&gt;</span><span style="color:#0000ff;">--&gt;</span><br />
+<span style="color:#0000ff;">        &lt;/</span><span style="color:#a31515;">claimTypeRequirements</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;/</span><span style="color:#a31515;">message</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">security</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;/</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">ws2007FederationHttpBinding</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p>And finally Microsoft.IdentityModel configuration is generated to configure various WIF token validation configuration</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:3126dffe-4d6f-4e2f-8948-9e45a9391b67" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">microsoft.identityModel</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;</span><span style="color:#a31515;">service</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">audienceUris</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">value</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://localhost:53250/Service1.xamlx</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">audienceUris</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">issuerNameRegistry</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">Microsoft.IdentityModel.Tokens.ConfigurationBasedIssuerNameRegistry, </span><br />
+<span style="color:#0000ff;">                        Microsoft.IdentityModel, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</span>"<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;</span><span style="color:#a31515;">trustedIssuers</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">thumbprint</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">F7AD5A9DCC35F21FFC691925515F48EB44F5E07A</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">      &lt;/</span><span style="color:#a31515;">trustedIssuers</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">issuerNameRegistry</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">certificateValidation</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">certificateValidationMode</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">None</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">  &lt;/</span><span style="color:#a31515;">service</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">microsoft.identityModel</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p> </p>
+<p>Ok let’s now create a console client for this web service. Remember we haven’t configured anything in the ACS yet other than specifying a signing cert.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image11.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb11.png" border="0" alt="image" width="244" height="170" /></a> </p>
+<p>Choose the “Add Service Reference” to add a reference to this service</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image12.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb12.png" border="0" alt="image" width="244" height="198" /></a></p>
+<p>When you click Ok, SvcUtil.exe will detect that this service requires a token from ACS and will go and do metadata exchange to figure out various endpoints supported ACS v2. It will then generate all the configuration required to talk to ACS and the service. Because ACS supports multiple token issuance endpoints, svcutil.exe simply picks the first one. We need to change that manually to the one we want to use for our scenario. For this example I’m going to use the UserName endpoint so I’ll change following section of the binding:</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:94631e4d-ed10-4cbd-bce7-ab4f8ea1d25f" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:400px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">issuedTokenParameters</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">keySize</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">256</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">keyType</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">SymmetricKey</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">tokenType</span><span style="color:#0000ff;">=</span>""<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">additionalRequestParameters</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;</span><span style="color:#a31515;">trust:SecondaryParameters</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:KeyType</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://docs.oasis-open.org/ws-sx/ws-trust/200512/SymmetricKey<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:KeyType</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:KeySize</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>256<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:KeySize</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:Claims</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">Dialect</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity</span>"<br />
+<span style="color:#0000ff;">                </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">                &lt;</span><span style="color:#a31515;">wsid:ClaimType</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">Uri</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name</span>"<br />
+<span style="color:#0000ff;">                    </span><span style="color:#ff0000;">Optional</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:wsid</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">                &lt;</span><span style="color:#a31515;">wsid:ClaimType</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">Uri</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.microsoft.com/ws/2008/06/identity/claims/role</span>"<br />
+<span style="color:#0000ff;">                    </span><span style="color:#ff0000;">Optional</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:wsid</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">            &lt;/</span><span style="color:#a31515;">trust:Claims</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:KeyWrapAlgorithm</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:KeyWrapAlgorithm</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:EncryptWith</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/04/xmlenc#aes256-cbc<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:EncryptWith</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:SignWith</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2000/09/xmldsig#hmac-sha1<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:SignWith</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:CanonicalizationAlgorithm</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/10/xml-exc-c14n#<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:CanonicalizationAlgorithm</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:EncryptionAlgorithm</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/04/xmlenc#aes256-cbc<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:EncryptionAlgorithm</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;/</span><span style="color:#a31515;">trust:SecondaryParameters</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">additionalRequestParameters</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">issuer</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/issuedtoken</span>"<br />
+<span style="color:#0000ff;">        </span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">customBinding</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">bindingConfiguration</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/issuedtoken</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">issuerMetadata</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/mex</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">issuedTokenParameters</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p>to</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:53c4fc6f-8fa6-40d0-9384-b4545a555ed2" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">issuedTokenParameters</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">keySize</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">256</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">keyType</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">SymmetricKey</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">tokenType</span><span style="color:#0000ff;">=</span>""<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">additionalRequestParameters</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;</span><span style="color:#a31515;">trust:SecondaryParameters</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:KeyType</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://docs.oasis-open.org/ws-sx/ws-trust/200512/SymmetricKey<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:KeyType</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:KeySize</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>256<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:KeySize</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:Claims</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">Dialect</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity</span>"<br />
+<span style="color:#0000ff;">                </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">                &lt;</span><span style="color:#a31515;">wsid:ClaimType</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">Uri</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name</span>"<br />
+<span style="color:#0000ff;">                    </span><span style="color:#ff0000;">Optional</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:wsid</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">                &lt;</span><span style="color:#a31515;">wsid:ClaimType</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">Uri</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.microsoft.com/ws/2008/06/identity/claims/role</span>"<br />
+<span style="color:#0000ff;">                    </span><span style="color:#ff0000;">Optional</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">true</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:wsid</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://schemas.xmlsoap.org/ws/2005/05/identity</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">            &lt;/</span><span style="color:#a31515;">trust:Claims</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:KeyWrapAlgorithm</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:KeyWrapAlgorithm</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:EncryptWith</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/04/xmlenc#aes256-cbc<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:EncryptWith</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:SignWith</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2000/09/xmldsig#hmac-sha1<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:SignWith</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:CanonicalizationAlgorithm</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/10/xml-exc-c14n#<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:CanonicalizationAlgorithm</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">            &lt;</span><span style="color:#a31515;">trust:EncryptionAlgorithm</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">xmlns:trust</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512</span>"<span style="color:#0000ff;">&gt;</span>http://www.w3.org/2001/04/xmlenc#aes256-cbc<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">trust:EncryptionAlgorithm</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;/</span><span style="color:#a31515;">trust:SecondaryParameters</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">additionalRequestParameters</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;</span><span style="color:#a31515;">issuer</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/username</span>"<span style="color:#0000ff;"> </span><br />
+<span style="color:#0000ff;">          </span><span style="color:#ff0000;">bindingConfiguration</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/username</span>"<span style="color:#0000ff;"> </span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">ws2007HttpBinding</span>"<span style="color:#0000ff;"> /&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">issuedTokenParameters</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p>Notice I have changed the <strong>issuedtoken</strong> endpoint to a <strong>username</strong> endpoint.</p>
+<p>Let’s create a basic client and run it.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:6dab73a6-cc3c-4a31-8d18-4ddafa63b792" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">class</span> <span style="color:#2b91af;">Program</span><br />
+{<br />
+    <span style="color:#0000ff;">static</span> <span style="color:#0000ff;">void</span> Main(<span style="color:#0000ff;">string</span>[] args)<br />
+    {<br />
+        <span style="color:#0000ff;">var</span> client = <span style="color:#0000ff;">new</span> ServiceReference1.<span style="color:#2b91af;">ServiceClient</span>();<br />
+        <span style="color:#2b91af;">Console</span>.WriteLine(client.GetData(33));<br />
+    }<br />
+}</div>
+</div>
+</div>
+<p>Got following exception:</p>
+<p><span style="color:#ff0000;">System.ServiceModel.Security.SecurityNegotiationException: SOAP security negotiation with '</span><a href="http://localhost:53250/Service1.xamlx'"><span style="color:#ff0000;">http://localhost:53250/Service1.xamlx'</span></a><span style="color:#ff0000;"> for target '</span><a href="http://localhost:53250/Service1.xamlx'"><span style="color:#ff0000;">http://localhost:53250/Service1.xamlx'</span></a><span style="color:#ff0000;"> failed. See inner exception for more details. ---&gt; System.IdentityModel.Tokens.SecurityTokenValidationException: The X.509 certificate CN=localhost chain building failed. The certificate that was used has a trust chain that cannot be verified. Replace the certificate or change the certificateValidationMode. A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.</span></p>
+<p>Because I’m using self-signed certificate so trust chain is failing. For now I’ll just disable the “trust chain validation” by adding following endpoint behavior to the client config.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:c04729b8-7d0a-4a4f-aff2-ced6ef7b34f4" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;</span><span style="color:#a31515;">endpointBehaviors</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;</span><span style="color:#a31515;">clientCredentials</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">        &lt;</span><span style="color:#a31515;">serviceCertificate</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">          &lt;</span><span style="color:#a31515;">authentication</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">certificateValidationMode</span><span style="color:#0000ff;">=</span>"<span style="color:#0000ff;">None</span>"<span style="color:#0000ff;">/&gt;</span><br />
+<span style="color:#0000ff;">        &lt;/</span><span style="color:#a31515;">serviceCertificate</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">      &lt;/</span><span style="color:#a31515;">clientCredentials</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">    &lt;/</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">  &lt;/</span><span style="color:#a31515;">endpointBehaviors</span><span style="color:#0000ff;">&gt;</span><br />
+<span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p>Running it again, I get a different error:</p>
+<p><span style="color:#ff0000;">System.ServiceModel.Security.SecurityNegotiationException: SOAP security negotiation with '</span><a href="https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/username'"><span style="color:#ff0000;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/username'</span></a><span style="color:#ff0000;"> for target '</span><a href="https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/username'"><span style="color:#ff0000;">https://alpha2.accesscontrol.appfabriclabs.com/v2/wstrust/13/username'</span></a><span style="color:#ff0000;"> failed. See inner exception for more details. ---&gt; System.InvalidOperationException: The username is not provided. Specify username in ClientCredentials.</span><br />
+Of course I have chosen the userName endpoint on the ACS so WCF is asking about username/password for talking to this endpoint. Let’s specify one.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:da6adb58-538f-45c0-b1aa-71a1b3197a9d" class="wlWriterEditableSmartContent" style="display:inline;float:none;margin:0;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">static</span> <span style="color:#0000ff;">void</span> Main(<span style="color:#0000ff;">string</span>[] args)<br />
+{<br />
+    <span style="color:#0000ff;">var</span> client = <span style="color:#0000ff;">new</span> ServiceReference1.<span style="color:#2b91af;">ServiceClient</span>();<br />
+    client.ClientCredentials.UserName.UserName = <span style="color:#a31515;">"test"</span>;<br />
+    client.ClientCredentials.UserName.Password = <span style="color:#a31515;">"test"</span>;<br />
+    <span style="color:#2b91af;">Console</span>.WriteLine(client.GetData(33));<br />
+}</div>
+</div>
+</div>
+<p>Running the sample again, this time a call was indeed issued to ACS and I get an error from ACS.</p>
+<p>System.ServiceModel.Security.MessageSecurityException: An unsecured or incorrectly secured fault was received from the other party. See the inner FaultException for the fault code and detail. ---&gt; System.ServiceModel.FaultException: ID3034: Authentication failed.<br />
+   --- End of inner exception stack trace ---</p>
+<p>So ACS has tried to validate the incoming userName/password and it can’t find a match as there is no such userName exist.  Identities owned and managed by ACS can be created using the “<strong>Service Identities</strong>” link.</p>
+<p>Go back to the portal and click on the “<strong>Service Identities</strong>” link to add a new service identity and name it as “test” (same as our userId)</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image13.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb13.png" border="0" alt="image" width="244" height="84" /></a></p>
+<p>Add a “Password Credential” with password value again set to “test” (same as password used by client app)</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image14.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb14.png" border="0" alt="image" width="244" height="150" /></a></p>
+<p>Running the client again: this time I get a different error:</p>
+<p>System.ServiceModel.Security.MessageSecurityException: An unsecured or incorrectly secured fault was received from the other party. See the inner FaultException for the fault code and detail. ---&gt; System.ServiceModel.FaultException: ID3082: The request scope is not valid or is unsupported.</p>
+<p>So the authentication with ACS was successful but it can’t find a “Relying Party” matching to my request. Please note, client is making a token issuance request for the workflow service which is identified as “http://localhost:53250/Service1.xamlx”.</p>
+<p>So let’s add a new Relying Party once again using the management portal.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image15.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb15.png" border="0" alt="image" width="244" height="217" /></a> </p>
+<p>By running the application, I get following error.</p>
+<p>System.ServiceModel.Security.MessageSecurityException: An unsecured or incorrectly secured fault was received from the other party. See the inner FaultException for the fault code and detail. ---&gt; System.ServiceModel.FaultException: ID3037: The specified request failed.</p>
+<p>Now this error doesn’t tell us much but there are couple of things we need to do. First of all we created a “Default Rule group” as part of our “Relying Party” but we didn’t added any rules to it. So let’s add a Passthrough rule.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image16.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb16.png" border="0" alt="image" width="219" height="244" /></a></p>
+<p>For Web Services federation, ACS v2 by default uses <a href="http://blogs.msdn.com/b/vbertocci/archive/2008/01/02/on-prooftokens.aspx">Holder of Key</a> confirmation method so a public key certificate is required for encrypting the proof key. This certificate MUST match with the private key certificate configured for the web service (aka Relying Party (RP)).</p>
+<p>Ok let’s add an encryption certificate using the “Certificates and Keys” page. Remember to select your corresponding RP.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image17.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb17.png" border="0" alt="image" width="244" height="118" /></a></p>
+<p>Running the application and hurray it runs without error and I can see the output.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/10/image18.png"><img style="display:inline;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb18.png" border="0" alt="image" width="244" height="70" /></a> </p>
+<p>In this sample, I have used a Workflow Service but these exact steps works for a code based WCF service as well. It’s a LONG post but hopefully someone will find it useful as it took me some time to figure few hidden gems (especially the holder of key stuff).</p>

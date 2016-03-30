@@ -1,0 +1,144 @@
+---
+layout: post
+title: Using WIF for securing REST Service
+date: 2010-07-31 17:43:40.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+- WIF
+- Windows Azure AppFabric
+tags: []
+meta:
+  _edit_last: '13661190'
+  _wp_old_slug: ''
+  _oembed_777f72ecf9579108d0973f0c0bb131af: '{{unknown}}'
+  _oembed_dcd6ee1b39f0caf34c97be0d2d5e2ca0: '{{unknown}}'
+  _oembed_2109f48d71d2e8c78047e8dcb0a6ae56: '{{unknown}}'
+  _oembed_f2a60a80cc5998f1b14c9ca7331be646: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p class="MsoNormal"><span lang="EN-GB">OAuth WRAP and SWT (Simple Web Token) have emerged as a standard way for employing claim-based-security to the REST services.<span>&#160; </span>Conceptually this model is very similar to the one used in SOAP world. A client goes to an issuer, authenticates itself using some token and gets back a different token (containing claims) in SWT format.<span>&#160; </span></p>
+<p>   </span></p>
+<p class="MsoNormal"><span lang="EN-GB">WIF provides a rich API and object model to claim-enable your .Net applications but currently it doesn’t natively support OAuth or SWT. In this post, I’ll show how you can extend WIF to bring claim-based-security to REST services.<span>&#160; </span>My goal is to implement this functionality in such a way that all the WIF goodness around claims-transformation (ClaimsAuthenticationManager), claim-based-authorization (ClaimsAuthorizationManager) etc can be used exactly the same way in the REST world.</p>
+<p>   </span></p>
+<p class="MsoNormal"><span lang="EN-GB">I have achieved this by introducing an OAuth WRAP channel which sits in the WCF channel stack and perform an almost identical job to its SOAP counterpart WS-Security channel.<span>&#160; </span></span><span lang="EN-GB">I have implemented the OAuth WRAP channel using the interceptor API from the REST Starter Kit.</p>
+<p>   </span></p>
+<p class="MsoNormal"><a href="http://zuahmed.files.wordpress.com/2010/07/image.png"><img style="border-bottom:0;border-left:0;display:block;float:none;margin-left:auto;border-top:0;margin-right:auto;border-right:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="574" height="183" /></a>&#160;<span style="font-family:consolas;color:#2b91af;font-size:9.5pt;" lang="EN-GB">WebServiceHost2</span><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"> host = <span style="color:blue;">new</span> <span style="color:#2b91af;">WebServiceHost2</span>(<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">TestService</span>), <span style="color:blue;">new</span> <span style="color:#2b91af;">Uri</span>(<span style="color:#a31515;"><a href="http://localhost:9090">http://localhost:9090</a></span>));</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;background:yellow;font-size:9.5pt;" lang="EN-GB">host.Interceptors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">OAuthWrapSecurityChannel</span>());</span><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB">host.Open();</p>
+<p>   </span></p></p>
+<p>The OAuth channel takes care of extracting the token from the incoming message, running it through the validation pipeline (based on WIF SecurityTokenHandler framework), calling ClaimsAuthenticationManager, setting the WCF authorization context so that ClaimsAuthorizationManager can be called, and finally presenting the claims to the service method in the standard WIF way: <b>Thread.CurrentPrincipal</b> :)</p>
+<p>Now with OAuth channel plugged in, if I call the service with a token issues by the Windows AppFabric ACS:</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/07/clip_image0022.jpg"><img style="border-bottom:0;border-left:0;display:inline;border-top:0;border-right:0;" title="clip_image002" border="0" alt="clip_image002" src="{{ site.baseurl }}/assets/clip_image002_thumb2.jpg" width="805" height="238" /></a></p>
+<p>I get following output on the service side.</p>
+<p class="MsoNormal"><span><a href="http://zuahmed.files.wordpress.com/2010/07/clip_image0014.png"><img style="border-bottom:0;border-left:0;display:inline;border-top:0;border-right:0;" title="clip_image001" border="0" alt="clip_image001" src="{{ site.baseurl }}/assets/clip_image0014_thumb.png" width="483" height="303" /></a></span><span lang="EN-GB"></p>
+<p>   </span></p>
+<p class="MsoNormal"><span lang="EN-GB">And from the service code, you would notice that standard WIF API is used to access incoming claims.</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB">[<span style="color:#2b91af;">WebGet</span>]</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;color:blue;font-size:9.5pt;" lang="EN-GB">string</span><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"> Hello()</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB">{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Hello called...&quot;</span>);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;------------------&quot;</span>);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span><span style="color:blue;">var</span> cp = <span style="color:#2b91af;">Thread</span>.CurrentPrincipal <span style="color:blue;">as</span> <span style="color:#2b91af;">IClaimsPrincipal</span>;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span><span style="color:blue;">if</span> (cp != <span style="color:blue;">null</span>)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">foreach</span> (<span style="color:blue;">var</span> id <span style="color:blue;">in</span> cp.Identities)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Authentication Type: &quot;</span> + id.AuthenticationType);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Is Authenticated: &quot;</span> + id.IsAuthenticated);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Name: &quot;</span> + id.Name);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine();</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Claims...&quot;</span>);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">foreach</span> (<span style="color:blue;">var</span> c <span style="color:blue;">in</span> id.Claims)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(c.ClaimType + <span style="color:#a31515;">&quot;: &quot;</span> + c.Value);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB"><span>&#160;&#160;&#160; </span><span style="color:blue;">return</span> <span style="color:#a31515;">&quot;Hello, World&quot;</span>;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB">}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;" lang="EN-GB">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span lang="EN-GB">WIF would be configured using exactly same configuration settings required for a SOAP service.</p>
+<p>   </span></p></p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:2585d423-39ad-40d8-9c58-814871842f03" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#ddd;max-height:500px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">configuration</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">configSections</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">section</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">microsoft.identityModel</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.Configuration.MicrosoftIdentityModelSection, Microsoft.IdentityModel, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">configSections</span><span style="color:#0000ff;">&gt;</span></li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">          <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">federatedServiceHostConfiguration</span><span style="color:#0000ff;"> /&gt;</span></li>
+<li>          <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceDebug</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">includeExceptionDetailInFaults</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">true</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">extensions</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behaviorExtensions</span><span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">federatedServiceHostConfiguration</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.Configuration.ConfigureServiceHostBehaviorExtensionElement, Microsoft.IdentityModel, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behaviorExtensions</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">extensions</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;!--</span><span style="color:#008000;">WIF configuration</span><span style="color:#0000ff;">--&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">microsoft.identityModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">service</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">securityTokenHandlers</span><span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.OAuth.SWTSecurityTokenHandler, Microsoft.IdentityModel.OAuth, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">securityTokenHandlers</span><span style="color:#0000ff;">&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">issuerNameRegistry</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">SampleService.MySimpleRegistry, SampleService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">claimsAuthorizationManager</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">SampleService.MySimpleClaimsAuthorizationManager, SampleService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">audienceUris</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">value</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">http://localhost/</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">audienceUris</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">issuerTokenResolver</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">type</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">SampleService.WrapIssuerTokenResolver, SampleService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">service</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">microsoft.identityModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">startup</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">supportedRuntime</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">version</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">v4.0</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">sku</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">.NETFramework,Version=v4.0</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">startup</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">configuration</span><span style="color:#0000ff;">&gt;</span></li>
+</ol></div>
+</p></div>
+</p></div>
+<p>&#160;</p>
+<p>In summary, these extensions implement OAuth WRAP protocol head for Windows Identity Foundation and re-uses all the neat WIF APIs for deriving the service behaviour. In the next post, I’ll discuss how to create a local OAuth WRAP issuer using the SecurityTokenService WIF API.</p>
+<p>Feel free to <a href="http://cid-724b6fcd63a8c1ac.office.live.com/self.aspx/zamd.net/OAuthWrapWithWIF.zip">download</a> the source and experiment. </p>

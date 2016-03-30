@@ -1,0 +1,76 @@
+---
+layout: post
+title: 'WCF with Service Bus V2: Queues'
+date: 2011-05-18 19:17:30.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- ServiceBusV2
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>May CTP of Service Bus introduced tons of new messaging capabilities including Queuing and Topic based pub/sub messaging. <a href="http://blogs.msdn.com/b/clemensv/archive/2011/05/16/introducing-the-windows-azure-appfabric-service-bus-may-2011-ctp.aspx">Check out</a> Clemens post for an overview.</p>
+<p>The usage of Service Bus messaging entities (Queues, Topics) is divided across two namespaces – a ‘Management Namespace’ and a ‘Runtime Namespace’. Management namespace is used to create/define messaging entities while the Runtime Namespace is used to do the actual messaging operations using the already defined ‘messaging entities’. The management namespace is exposed using as a REST service and Service Bus SDK also provides with a client library which hides the HTTP based interface behind a nice object oriented API.</p>
+<p>So once a messaging entity (for example a Queue) is created and is ready you can use the Runtime API to send/receive messages. May CTP comes with two flavours of runtime APIs.</p>
+<ul>
+<li>A low level MessagingFactory based API: Which is the native, high fidelity Service Bus API exposing all the Service Bus messaging features.</li>
+<li>A higher level WCF binding: Which internally uses the MessagingFactory API and integrates the Service Bus messaging with WCF programing model. </li>
+</ul>
+<p>There are already few <a href="http://rickgaribay.net/archive/2011/05/17/appfabric-service-bus-v2-ctp.aspx">blogs posts</a> which talks about the MessagingFactory API so I’m not going to repeat that here. Let’s see how can I use Service Bus queues a communication mechanism between my WCF client &amp; service. I’ll start with creating a usual one-way service as you would do for MSMQ or any other queuing technology.</p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:e864518a-3257-42d4-99ed-432d65515829" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;">    [<span style="color:#2b91af;">ServiceContract</span>]<br />     <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">interface</span> <span style="color:#2b91af;">IHelloService</span><br />     {<br />         [<span style="color:#2b91af;">OperationContract</span>(IsOneWay = <span style="color:#0000ff;">true</span>)]<br />         <span style="color:#0000ff;">void</span> SayHello(<span style="color:#0000ff;">string</span> input);<br />     }</p>
+<p>     <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">class</span> <span style="color:#2b91af;">HelloService</span> : <span style="color:#2b91af;">IHelloService</span><br />     {<br />         <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">void</span> SayHello(<span style="color:#0000ff;">string</span> input)<br />         {<br />             <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Says: &quot;</span> + input);<br />         }<br />     }</div>
+</p></div>
+</p></div>
+<p>&#160;</p>
+<p>Following snippet create a queue (line 6) using the management API. I’m using the wrapper class provided with the SDK for the REST based management service.</p>
+<p>I then create a binding instance and specify ACS credentials on it. All the operations on Service Bus requires a valid token from ACS and these credentials would be used to acquire an ACS token for SB operations.</p>
+<p>Finally I added an endpoint specifying the queue location as the endpoint address. </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:181e0178-4c97-47ea-b8aa-54f5b96a8515" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#ddd;max-height:500px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">static</span> <span style="color:#0000ff;">void</span> Main(<span style="color:#0000ff;">string</span>[] args)</li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">const</span> <span style="color:#0000ff;">string</span> baseAddress = <span style="color:#a31515;">&quot;sb://soundbyte.servicebus.appfabriclabs.com&quot;</span>;</li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">var</span> credential = <span style="color:#2b91af;">TransportClientCredentialBase</span>.CreateSharedSecretCredential(<span style="color:#a31515;">&quot;owner&quot;</span>,</li>
+<li>                                                                                <span style="color:#a31515;">&quot;zYDbQ2wM1k7J32323232323VdbBukWJTF6Y=&quot;</span>);</li>
+<li style="background:#f3f3f3;">    CreateQueue(baseAddress, credential,<span style="color:#a31515;">&quot;q1&quot;</span>);</li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">var</span> serviceBusBinding = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ServiceBusMessagingBinding</span>();</li>
+<li>    serviceBusBinding.MessagingFactorySettings.Credential = credential;</li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li>    <span style="color:#0000ff;">var</span> sh = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ServiceHost</span>(<span style="color:#0000ff;">typeof</span> (<span style="color:#2b91af;">HelloService</span>));</li>
+<li style="background:#f3f3f3;">    sh.AddServiceEndpoint(<span style="color:#0000ff;">typeof</span> (<span style="color:#2b91af;">IHelloService</span>), serviceBusBinding, baseAddress + <span style="color:#a31515;">&quot;/q1&quot;</span>);</li>
+<li>    sh.Open();</li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li>    <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">&quot;Host ready...&quot;</span>);</li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li>    <span style="color:#0000ff;">var</span> cf = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ChannelFactory</span>&lt;<span style="color:#2b91af;">IHelloService</span>&gt;(serviceBusBinding, baseAddress + <span style="color:#a31515;">&quot;/q1&quot;</span>);</li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">var</span> proxy = cf.CreateChannel();</li>
+<li>    <span style="color:#0000ff;">for</span> (<span style="color:#0000ff;">int</span> i = 0; i &lt; 10; i++)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        proxy.SayHello(<span style="color:#a31515;">&quot;Hi &quot;</span> + i);</li>
+<li style="background:#f3f3f3;">    }</li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">    <span style="color:#2b91af;">Console</span>.ReadLine();</li>
+<li>}</li>
+</ol></div>
+</p></div>
+</p></div>
+<p>&#160;</p>
+<p>My client is a standard WCF proxy (line 19-23) which is sending messages to the same endpoint address (queue location) using the same ServiceBus binding. </p>
+<p>The above produces following expected output. Easy isn’t it?</p>
+<p><a href="http://zuahmed.files.wordpress.com/2011/05/image.png"><img style="background-image:none;border-bottom:0;border-left:0;padding-left:0;padding-right:0;display:inline;border-top:0;border-right:0;padding-top:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="181" height="244" /></a></p>
+<p>By integrating Service Bus messaging with WCF programing model, we can reuse all of the WCF goodness with Service bus messaging. For example I can secure messages while they are traveling through queues/topics by just changing the binding.</p>
+<p>Next time I’ll show how to do pub/sub using the WCF programing model. </p>

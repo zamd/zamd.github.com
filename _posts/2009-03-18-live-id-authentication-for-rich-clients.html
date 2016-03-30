@@ -1,0 +1,46 @@
+---
+layout: post
+title: Live ID Authentication for Rich Clients
+date: 2009-03-18 16:13:53.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- .NET Services
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_acca326d729f55968b51dcdafbfaf97c: '{{unknown}}'
+  _oembed_f1c3ab6a7cd509c85c792f9236e3e70a: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><strong><span style="color:#ff0000;">Disclaimer: Please note following approach works but is totally unsupported. </span></strong></p>
+<p class="MsoNormal"><span style="color:#1f497d;">Active version of Live ID STS is available at: <a href="https://dev.login.live.com/wstlogin.srf">https://dev.login.live.com/wstlogin.srf</a> and we can get a SAML token by using standard WS-Security username token as input.</span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            <span style="color:blue;">var</span> issuer = <span style="color:#a31515;">"<a href="https://dev.login.live.com/wstlogin.srf">https://dev.login.live.com/wstlogin.srf</a>"</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            <span style="color:blue;">var</span> binding = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSHttpBinding</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            binding.Security.Mode = <span style="color:#2b91af;">SecurityMode</span>.TransportWithMessageCredential;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            binding.Security.Transport.ClientCredentialType = <span style="color:#2b91af;">HttpClientCredentialType</span>.None;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            binding.Security.Message.ClientCredentialType = <span style="color:#2b91af;">MessageCredentialType</span>.UserName;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            binding.Security.Message.EstablishSecurityContext = <span style="color:blue;">false</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            binding.Security.Message.NegotiateServiceCredential = <span style="color:blue;">false</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            <span style="color:#2b91af;">WSTrustClient</span> client = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSTrustClient</span>(binding, <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(issuer), </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">                <span style="color:#2b91af;">TrustVersion</span>.WSTrustFeb2005, <span style="color:blue;">new</span> <span style="color:#2b91af;">ClientCredentials</span>());</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            client.ClientCredentials.UserName.UserName = <span style="color:#a31515;">"<a href="mailto:zuahmed@microsoft.com">zamd@liveid.com</a>"</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            client.ClientCredentials.UserName.Password = <span style="color:#a31515;">"password "</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            <span style="color:blue;">var</span> rst = <span style="color:blue;">new</span> <span style="color:#2b91af;">RequestSecurityToken</span>(<span style="color:#2b91af;">RequestTypeConstants</span>.Issue);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            rst.AppliesTo = <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:#a31515;">"<a href="http://zamd.net">http://zamd.net</a>"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            <span style="color:#2b91af;">RequestSecurityTokenResponse</span> rstr;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            <span style="color:blue;">var</span> token = client.Issue(rst, <span style="color:blue;">out</span> rstr) <span style="color:blue;">as</span> <span style="color:#2b91af;">GenericXmlSecurityToken</span>;</span></p>
+<p class="MsoNormal">
+</div>

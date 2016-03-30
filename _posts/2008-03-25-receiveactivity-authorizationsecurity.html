@@ -1,0 +1,30 @@
+---
+layout: post
+title: ReceiveActivity authorization/security
+date: 2008-03-25 13:19:12.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">ReceieveActivity shipped as part of .net Framework 3.5 enables you to receive data in your workflows by using web services. RecieveActivity also provides a way to enable Role based authorization so you can specify who can send data into your workflows.</p>
+<p class="MsoNormal">By default, RBAC is done against windows principal and you can change this using the serviceAuthorizationBehavior</p>
+<p class="MsoNormal" style="text-indent:.5in;"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">serviceAuthorization</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">principalPermissionMode</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">Custom</span>"/&gt;</span></p>
+<p class="MsoNormal"><span style="color:#404040;" lang="EN-GB">There is a small bug in the current UI. If you enter the value in Role field to a “Windows Group” i.e Administrators and leave the Name field blank then everything works fine. </span></p>
+<p class="MsoNormal"><span style="color:#404040;" lang="EN-GB">However if you enter a value in the name field say “zuahmed” and click Ok and now come back to this dialog and clear the Name field. Now if you run the application, you will always get an “Access Denied” exception.</span></p>
+<p class="MsoNormal"><span style="color:#404040;" lang="EN-GB"><img src="{{ site.baseurl }}/assets/a.jpg" alt="" /> </span></p>
+<p class="MsoNormal"><span style="color:#404040;" lang="EN-GB">So what’s happening in the background is:</span></p>
+<p class="MsoNormal"><span style="color:#404040;" lang="EN-GB">When you clear the value in the Name field and hit Ok this will set the value of </span><span style="font-size:10pt;font-family:'Courier New';">PrincipalPermissionName property </span><span style="color:#404040;" lang="EN-GB">to an empty string(“”) rather than a null (the default). Now if you only want to authorize access on group membership, an identity value of null must be used otherwise you will access denied. Currently there is no way to fix this using the UI. You have go into the designer generated code and reset the value of </span><strong><span style="font-size:10pt;font-family:'Courier New';">typedoperationinfo1.PrincipalPermissionName = null.</span></strong></p>
+<p class="MsoNormal"><span style="color:#404040;" lang="EN-GB">This is now a known issue and will be hopefully fixed in next SP.</span></p>
+</div>

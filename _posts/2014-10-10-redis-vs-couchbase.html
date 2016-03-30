@@ -1,0 +1,301 @@
+---
+layout: post
+title: Redis vs Couchbase
+date: 2014-10-10 01:57:45.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Couchbase
+- Redis
+tags:
+- NoSql
+meta:
+  publicize_linkedin_url: https://www.linkedin.com/updates?discuss=&scope=9788649&stype=M&topic=5928825406911164416&type=U&a=ULyP
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+  _edit_last: '13661190'
+  _oembed_ef69e7c1931ddcdc2f2b2b288283bfe8: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Recently in my project, we experienced latency issues which required us to introduce a caching layer in our architecture. I evaluated Couchbase &amp; Redis as potential technology choices and have decided to go with Redis as it nicely fits our data &amp; computation model. In this post, I’ll briefly share our requirements, data model and the factors which lead us to choose Redis over Couchbase. </p>
+<p>Our latency issues were twofold:</p>
+<ul>
+<li>Large data returned from various corporate services like Stock levels, Product &amp; Price etc. This data is mostly reference/semi-static and is cachable (for hours at least) </li>
+<li>Running computation (matching, copying &amp; intersection) on large lists of objects and copying them back &amp; forth from cache </li>
+</ul>
+<p>The data structures involved in our solutions were set of tuples (2-tuples) containing a TPNB(identifier) and a number, which nicely aligns with the Redis Sorted Set data structure, where each member of the set has a key and a score.</p>
+<table class="MsoTableGrid" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" width="614" border="1">
+<tbody>
+<tr>
+<td style="border-top:windowtext 1pt solid;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:windowtext 1pt solid;padding:0 5.4pt;" valign="top" width="613" colspan="5">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><font face="Calibri"><font style="font-size:11pt;" color="#000000">Canonical Data Model</font></font></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:windowtext 1pt solid;padding:0 5.4pt;" valign="top" width="122">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><font face="Calibri"><font style="font-size:11pt;" color="#000000">Stock Count</font></font></p>
+<table class="GridTable1Light1" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">TPNB</font></font></span></b></p>
+</td>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">Count</font></font></span></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616111</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">3</font></font></span></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616112</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">4</font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0;line-height:normal;">
+</td>
+<td style="border-top:medium none;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="132">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><font face="Calibri"><font style="font-size:11pt;" color="#000000">Ledger Stock Level </font></font></p>
+<table class="GridTable1Light1" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">TPNB</font></font></span></b></p>
+</td>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">Level</font></font></span></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616111</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">4</font></font></span></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616112</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">7</font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0;line-height:normal;">
+</td>
+<td style="border-top:medium none;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="141">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><font face="Calibri"><font style="font-size:11pt;" color="#000000">Stock Count Variance</font></font></p>
+<table class="GridTable1Light1" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">TPNB</font></font></span></b></p>
+</td>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="56">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">Variance</font></font></span></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616111</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="56">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">-1</font></font></span></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616112</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="56">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">-3</font></font></span></b></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0;line-height:normal;">
+</td>
+<td style="border-top:medium none;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="113">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><font face="Calibri"><font style="font-size:11pt;" color="#000000">Product Price </font></font></p>
+<table class="GridTable1Light1" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">TPNB</font></font></span></b></p>
+</td>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">Price</font></font></span></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616111</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">9.99</font></font></span></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616112</font></font></span></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="37">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">2.99</font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0;line-height:normal;">
+</td>
+<td style="border-top:medium none;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="103">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><font face="Calibri"><font style="font-size:11pt;" color="#000000">Category-H71</font></font></p>
+<table class="GridTable1Light1" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">TPNB</font></font></span></b></p>
+</td>
+<td style="border-top:#999999 1pt solid;border-right:#999999 1pt solid;border-bottom:#666666 1.5pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="18">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">&#160;</font></font></span></b></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616111</font></font></span></b></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="18">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">&#160;</font></font></span></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616112</font></font></span></b></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="18">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">&#160;</font></font></span></p>
+</td>
+</tr>
+<tr>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616113</font></font></span></b></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" valign="top" width="18">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">&#160;</font></font></span></p>
+</td>
+</tr>
+<tr style="height:13.95pt;">
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:#999999 1pt solid;padding:0 5.4pt;" height="18" valign="top" width="65">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><b><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">018616114</font></font></span></b></p>
+</td>
+<td style="border-top:medium none;border-right:#999999 1pt solid;border-bottom:#999999 1pt solid;border-left:medium none;padding:0 5.4pt;" height="18" valign="top" width="18">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:7pt;" color="#000000">&#160;</font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0;line-height:normal;">
+</td>
+</tr>
+</tbody>
+</table>
+<p>The power of Redis comes from the fact that you can perform operations directly on the sets. Couchbase has no such facility and you are required to retrieve target documents into the application server and apply your logic/computation to store the resultant document back in the cache. The Redis architecture significantly reduces data copying in and out of cache by pushing computation to the data.</p>
+<p>We started by storing Ledger stock level as a sorted set. Each [TPNB, Level] pair was stored as a distinct element within the set and we used standard ZADD command inside a transaction to populate the set.</p>
+<table class="MsoTableGrid" style="border-top:medium none;border-right:medium none;background:#d0cece;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:medium none;border-right:medium none;border-bottom:medium none;border-left:medium none;padding:0 5.4pt;" valign="top" width="601">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">multi</font></font></span></p>
+<p class="MsoNormal" style="margin:0 0 0 36pt;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">zadd sc.03211.ledger 4 018616111</font></font></span></p>
+<p class="MsoNormal" style="margin:0 0 0 36pt;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">zadd sc.03211.ledger 7 018616112</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">exec</font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;">When we start the stock count, we simply union the ledger set with a non-existent set to create our count variance set. This is a single instruction in Redis and no data is copied in or out of cache. </p>
+<table class="MsoTableGrid" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;margin-left:-.25pt;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:windowtext 1pt solid;border-right:windowtext 1pt solid;background:#d0cece;border-bottom:windowtext 1pt solid;border-left:windowtext 1pt solid;padding:0 5.4pt;" valign="top" width="601">
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">zunionstore <b>sc.03211.variance</b> 2 <b>sc.03211.ledger</b> non-existent-set </font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;">When we need to start the count, we need the same product boundary as the ‘ledger set’ but all the product counts needs to reset to ‘0’. For this, we again used a union operation with a weight of ‘0’ &amp; cloned the ledger position as our ‘start count’ position.</p>
+<table class="MsoTableGrid" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;margin-left:-.25pt;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:windowtext 1pt solid;border-right:windowtext 1pt solid;background:#d0cece;border-bottom:windowtext 1pt solid;border-left:windowtext 1pt solid;padding:0 5.4pt;" valign="top" width="601">
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">zunionstore <b>sc.03211.count</b> 2 <b>sc.03211.ledger</b> non-existent-set WEIGHTS 0 0</font></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Couchbase’s memcached type buckets have a max ‘value size’ limit of 1MB, which means we can’t store our data objects as a single key-value item, even the 20MB limit of Couchbase [type] buckets would be a stretch in some cases. </p>
+<p>Redis has no real data size limit and can store up to 4 billion members in a sorted set. </p>
+<p>Once the initial data structures were set up, we use INCR &amp; DCR commands in a transaction to increment count &amp; decrement variance in real time based on our inventory scan event stream. </p>
+<p>We categorize our variance by simply intersecting the relevant ‘category set’ with ‘variance set’ and storing the resulting set a ‘categorized-variance’. Again this is a single Redis instruction requiring no data copying    </p>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font face="Calibri"><font style="font-size:11pt;" color="#000000"></font></font></p>
+<table class="MsoTableGrid" style="border-top:medium none;border-right:medium none;border-collapse:collapse;border-bottom:medium none;margin-left:-.25pt;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:windowtext 1pt solid;border-right:windowtext 1pt solid;background:#d0cece;border-bottom:windowtext 1pt solid;border-left:windowtext 1pt solid;padding:0 5.4pt;" valign="top" width="601">
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font face="Calibri"><span><font color="#0070c0"><font style="font-size:11pt;">zinterstore <b>sc.032111.variance.h71</b> 2 <b>sc.032111.variance</b> product.</font></font></span><font style="font-size:11pt;"><font color="#000000"> </font></font><span><font style="font-size:11pt;" color="#0070c0">cat.h71 WEIGHTS 1 1</font></span></font></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font face="Calibri"><font style="font-size:11pt;" color="#000000"></font></font></p>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;">Redis also offers the ability to run custom logic inside the cache as Lua scripts. In the example below, we used a custom script to price the variance by multiplying each product count with unit price</p>
+<table class="MsoTableGrid" style="border-top:medium none;border-right:medium none;background:#e7e6e6;border-collapse:collapse;border-bottom:medium none;border-left:medium none;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-top:windowtext 1pt solid;border-right:windowtext 1pt solid;border-bottom:windowtext 1pt solid;border-left:windowtext 1pt solid;padding:0 5.4pt;" valign="top" width="601">
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">local leftSetId = KEYS[1]</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">local rightSetId = KEYS[2]</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">local destSetId = KEYS[3]</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">&#160;</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">local data = redis.call('zrange', leftSetId, 0, -1, 'WITHSCORES')</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">for k, v in pairs(data) do </font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160; </font></span><font style="font-size:11pt;">if k % 2 == 1 then </font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></span><font style="font-size:11pt;">local val<span>&#160; </span>= v</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></span><font style="font-size:11pt;">local leftScore = tonumber(data[k + 1])</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></span><font style="font-size:11pt;">local rightScore = tonumber(redis.call('zscore', rightSetId, val))</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></font></span></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></span><font style="font-size:11pt;">if rightScore then</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></span><font style="font-size:11pt;">redis.call('zadd', destSetId, leftScore * rightScore, val)</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160;&#160;&#160;&#160;&#160; </font></span><font style="font-size:11pt;">end</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font color="#0070c0"><span><font style="font-size:11pt;">&#160;&#160;&#160; </font></span><font style="font-size:11pt;">end</font></font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">end</font></font></span></p>
+<p class="MsoNormal" style="margin:0;line-height:normal;"><span><font face="Calibri"><font style="font-size:11pt;" color="#0070c0">return 'ok'</font><b><u></u></b></font></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font face="Calibri"><font style="font-size:11pt;" color="#000000"></font></font></p>
+<p>Redis has built-in support for master/slave replication through its Sentinel platform. A cluster of master/slave nodes can be deployed across data centres and Sentinel can provide auto-failover when the master goes down. Sentinel publishes key failover events using the Redis pub/sub &amp; client can use these events to reconfigure themselves to the new master once a failover is completed. </p>
+<p>Redis cluster is currently under development and would enable auto-sharding and transparent failover on top of the current replication model. The currently proposed model is very similar to Couchbase where dumb clients simply tries a random instance &amp; gets redirected if the target instance doesn’t master the key. Smart Clients cache the cluster map and always go to the correct host based on the cached cluster map. </p>
+<p>Currently proxy solutions like <a href="https://github.com/twitter/twemproxy">twimproxy</a> can be used to provide auto-sharding on top of Sentinel replication. </p>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font face="Calibri"><font style="font-size:11pt;" color="#000000"><strong>In summary, Redis was more than a simple key/value store for us. The fact we can run computation inside the cache to filter, merge and group data was the key differentiator for Redis against Couchbase. </strong></font></font></p>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font face="Calibri"><font style="font-size:11pt;" color="#000000"><strong>The clustering and high availability support in Redis is still bit lacking which makes it a risky choice as the master/primary data store of the application. In such scenarios, Couchbase should be the preferred technology choice.</strong> </font></font></p>
+<p class="MsoNormal" style="margin:0 0 8pt;line-height:12pt;"><font color="#000000" face="Calibri">&#160;</font></p>

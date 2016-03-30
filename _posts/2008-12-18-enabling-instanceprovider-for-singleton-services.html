@@ -1,0 +1,85 @@
+---
+layout: post
+title: Enabling InstanceProvider for Singleton Services
+date: 2008-12-18 00:25:21.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Many people like to use <a href="http://martinfowler.com/articles/injection.html">Dependency Injection</a> containers (Unity, Windsor etc) to create WCF service objects and the common approach is to use WCF&#8217;s <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.dispatcher.dispatchruntime.instanceprovider.aspx">InstanceProvider</a> extensibility hook to delegate instance creation to a DI container. By default this approach however doesn&#8217;t work for singleton services as InstanceProvider is never called. There is very simple fix to this problem which I&#8217;m going to explain in this post but first little background information.</p>
+<p class="MsoNormal">WCF instancing revolve around following 3 objects:</p>
+<p class="MsoNormal"><img border="0" width="672" height="194" src="{{ site.baseurl }}/assets/image002.png" /></p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">InstanceContextProvider is very early in dispatch pipeline and has access to channel and message. This provider has the flexibility to reuse instance contexts based on either sessions or any other unique id in messages. When InstanceContextProvider returns an existing InstanceContext, dispatcher sees whether the returned InstanceContext has an active instance, if yes then that active instance gets used and InstanceProvider is never invoked. If there is no active instance then InstanceProvider is invoked to get one.</p>
+<p class="MsoNormal">So when you configure your service&#8217;s InstanceContextMode=Single, there will always be cached instance and your provided will never be called. A simple fix is to overwrite the InstanceContext with a brand new one thus destroying the cached object. </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; dispatchRuntime.SingletonInstanceContext = <span style="color:blue;">new</span> <span style="color:#2B91AF;">InstanceContext</span>(serviceHostBase);</span></p>
+<p class="MsoNormal">This above change will result in your InstanceProvider to be called (only first time) to get the required service instance. Here is complete code.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">ServiceContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2B91AF;">ICalc</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">OperationContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">int</span> Add(<span style="color:blue;">int</span> a, <span style="color:blue;">int</span> b);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">ServiceBehavior</span>(InstanceContextMode=<span style="color:#2B91AF;">InstanceContextMode</span>.Single)]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2B91AF;">Calc</span> : <span style="color:#2B91AF;">ICalc</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">int</span> Add(<span style="color:blue;">int</span> a, <span style="color:blue;">int</span> b)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.WriteLine(<span style="color:blue;">this</span>.GetHashCode());</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> a + b;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">class</span> <span style="color:#2B91AF;">Program</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">ServiceHost</span> h = <span style="color:blue;">new</span> <span style="color:#2B91AF;">ServiceHost</span>(<span style="color:blue;">typeof</span>(<span style="color:#2B91AF;">Calc</span>));</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:yellow;">h.Description.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2B91AF;">MyBv</span>());</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; h.Open();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> cf = <span style="color:blue;">new</span> <span style="color:#2B91AF;">ChannelFactory</span>&lt;<span style="color:#2B91AF;">ICalc</span>&gt;(<span style="color:#A31515;">&quot;*&quot;</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cf.Open();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> proxy = cf.CreateChannel();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">for</span> (<span style="color:blue;">int</span> i = 0; i &lt; 10; i++)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxy.Add(11, 2);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.ReadLine();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2B91AF;">MyBv</span> : <span style="color:#2B91AF;">IServiceBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2B91AF;">ServiceDescription</span> serviceDescription, <span style="color:#2B91AF;">ServiceHostBase</span> serviceHostBase)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> cd = serviceHostBase.ChannelDispatchers[0] <span style="color:blue;">as</span> <span style="color:#2B91AF;">ChannelDispatcher</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> dispatchRuntime = cd.Endpoints[0].DispatchRuntime;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:yellow;">dispatchRuntime.SingletonInstanceContext = <span style="color:blue;">new</span> <span style="color:#2B91AF;">InstanceContext</span>(serviceHostBase);</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dispatchRuntime.InstanceProvider = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MyInstanceProvider</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2B91AF;">MyInstanceProvider</span> : <span style="color:#2B91AF;">IInstanceProvider</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">object</span> GetInstance(<span style="color:#2B91AF;">InstanceContext</span> instanceContext, System.ServiceModel.Channels.<span style="color:#2B91AF;">Message</span> message)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;background:yellow;">var</span><span style="background:yellow;"> c =&nbsp; <span style="color:blue;">new</span> <span style="color:#2B91AF;">Calc</span>();</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> c;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+</p></div>

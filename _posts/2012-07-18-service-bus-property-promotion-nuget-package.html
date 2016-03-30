@@ -1,0 +1,49 @@
+---
+layout: post
+title: Service Bus Property Promotion Nuget Package
+date: 2012-07-18 19:17:53.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- ServiceBusV2
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>I have just published a <a href="https://nuget.org/packages/ServiceBus.Extensions.PromotedProperties/1.0.1">Nuget package</a> which adds <a href="http://zamd.net/2011/05/25/pubsub-with-wcf-part-2/">property promotion</a> features to <a href="http://www.microsoft.com/en-us/download/details.aspx?id=30376">Service Bus</a> WCF programing model. </p>
+<p><a href="http://zuahmed.files.wordpress.com/2012/07/image.png"><img style="background-image:none;padding-left:0;padding-right:0;display:inline;padding-top:0;border-width:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="1028" height="687" /></a></p>
+<p>Once you added the package to your project you can use the <strong>PromotedProperty </strong>attribute to mark your properties as promoted. The package supports promotion from both complex &amp; primitive arguments. In addition to PromotedPropertyAttribute you also need to stick <strong>PropertyPromotionBehavior</strong> on each method of your service contract. </p>
+<p>Following service contract captures the sample usage. </p>
+<div style="margin:0;display:inline;float:none;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:0bc11f2f-720e-4e36-9a5b-c8bf2655216c" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#fff;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;white-space:nowrap;">
+<li><span style="color:#0000ff;">public</span> <span style="color:#0000ff;">class</span> <span style="color:#2b91af;">Order</span></li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">double</span> Amount { <span style="color:#0000ff;">get</span>; <span style="color:#0000ff;">set</span>; }</li>
+<li style="background:#f3f3f3;">    [<span style="color:#2b91af;">PromotedProperty</span>]</li>
+<li>    <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">string</span> ShipCity { <span style="color:#0000ff;">get</span>; <span style="color:#0000ff;">set</span>; }</li>
+<li style="background:#f3f3f3;">}</li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">[<span style="color:#2b91af;">ServiceContract</span>]</li>
+<li><span style="color:#0000ff;">public</span> <span style="color:#0000ff;">interface</span> <span style="color:#2b91af;">IOrderService</span></li>
+<li style="background:#f3f3f3;">{</li>
+<li>    [<span style="color:#2b91af;">OperationContract</span>(Name = <span style="color:#a31515;">&quot;SubmitFlat&quot;</span>, IsOneWay = <span style="color:#0000ff;">true</span>)]</li>
+<li style="background:#f3f3f3;">    [<span style="color:#2b91af;">PropertyPromotionBehavior</span>]</li>
+<li>    <span style="color:#0000ff;">void</span> Submit(<span style="color:#0000ff;">double</span> amount, [<span style="color:#2b91af;">PromotedProperty</span>] <span style="color:#0000ff;">string</span> shipCity);</li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li>    [<span style="color:#2b91af;">OperationContract</span>(IsOneWay = <span style="color:#0000ff;">true</span>)]</li>
+<li style="background:#f3f3f3;">    [<span style="color:#2b91af;">PropertyPromotionBehavior</span>]</li>
+<li>    <span style="color:#0000ff;">void</span> Submit(<span style="color:#2b91af;">Order</span> order);</li>
+<li style="background:#f3f3f3;">}</li>
+</ol></div>
+</p></div>
+</p></div>
+<p>Enjoy… </p>

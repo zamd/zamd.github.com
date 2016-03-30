@@ -1,0 +1,52 @@
+---
+layout: post
+title: Custom ServiceHostFactory for a XAMLX based Service
+date: 2010-04-23 09:18:23.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_bdeea68e874313a10278d07a9e0803d4: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>For IIS/WAS hosted services backed by a physical .SVC file (WCF 3.0/3.5) you can specify a custom ServiceHostFactory in the .svc file as part of <a href="http://msdn.microsoft.com/en-us/library/aa967286.aspx">service specification</a>. There is no such declaration for XAMLX files and instead you can use <a href="http://msdn.microsoft.com/en-us/library/dd807499.aspx">config-based activation</a> feature to achieve the same result.</p>
+<p>If my WCF service is deployed as <strong>Service1.xamlx </strong>and I want to customize the WorkflowServiceHost before it’s opened and used, I can easily do this using following two steps:</p>
+<ol>
+<li>Create a custom ServiceHostFactory by sub classing the default one</li>
+</ol>
+<p><span style="font-family:&amp;font-size:7.5pt;">namespace</span><span style="font-family:&amp;"> DeclarativeServiceLibrary1 </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">{ </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">    <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">MyServiceHostFactory</span> : <span style="color:#2b91af;">WorkflowServiceHostFactory</span> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">    { </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">        <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">WorkflowServiceHost</span> CreateWorkflowServiceHost(<span style="color:#2b91af;">Activity</span> activity, <span style="color:#2b91af;">Uri</span>[] baseAddresses) </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">        { </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">            <span style="color:blue;">return</span> <span style="color:blue;">base</span>.CreateWorkflowServiceHost(activity, baseAddresses); </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">        } </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">        <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">WorkflowServiceHost</span> CreateWorkflowServiceHost(<span style="color:#2b91af;">WorkflowService</span> service, <span style="color:#2b91af;">Uri</span>[] baseAddresses) </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">        { </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">            <span style="color:blue;">var</span> host =  <span style="color:blue;">base</span>.CreateWorkflowServiceHost(service, baseAddresses); </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">            <span style="color:green;">// add your customizations here...</span> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">            <span style="color:blue;">return</span> host; </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">        } </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">    } </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;">}</span></p>
+<p class="MsoNormal">2.  Configure your custom ServiceHostFactory for your XAMLX file</p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">  &lt;</span><span style="font-family:&amp;font-size:7.5pt;">system.serviceModel</span><span style="font-family:&amp;font-size:7.5pt;">&gt;</span><span style="font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;"> </span> </p>
+<p><span style="font-family:&amp;font-size:7.5pt;">    &lt;</span><span style="font-family:&amp;font-size:7.5pt;">serviceHostingEnvironment</span><span style="font-family:&amp;font-size:7.5pt;"> </span><span style="font-family:&amp;font-size:7.5pt;">multipleSiteBindingsEnabled</span><span style="font-family:&amp;font-size:7.5pt;">=</span><span style="font-family:&amp;">"<span style="color:blue;">true</span>"<span style="color:blue;"> &gt;</span> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">      &lt;</span><span style="font-family:&amp;font-size:7.5pt;">serviceActivations</span><span style="font-family:&amp;font-size:7.5pt;">&gt;</span><span style="font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">        &lt;</span><span style="font-family:&amp;font-size:7.5pt;">add</span><span style="font-family:&amp;font-size:7.5pt;"> </span><span style="font-family:&amp;font-size:7.5pt;">relativeAddress</span><span style="font-family:&amp;font-size:7.5pt;">=</span><span style="font-family:&amp;">"<span style="color:blue;">~/Service1.xamlx</span>" </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">             </span><span style="font-family:&amp;font-size:7.5pt;">service</span><span style="font-family:&amp;font-size:7.5pt;">=</span><span style="font-family:&amp;">"<span style="color:blue;">Service1.xamlx</span>" </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">             </span><span style="font-family:&amp;color:red;font-size:7.5pt;">factory</span><span style="font-family:&amp;color:blue;font-size:7.5pt;">=</span><span style="font-family:&amp;font-size:7.5pt;">"<span style="color:blue;">DeclarativeServiceLibrary1.MyServiceHostFactory</span>"<span style="color:blue;">/&gt;</span></span><span style="font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">      &lt;/</span><span style="font-family:&amp;font-size:7.5pt;">serviceActivations</span><span style="font-family:&amp;font-size:7.5pt;">&gt;</span><span style="font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">    &lt;/</span><span style="font-family:&amp;font-size:7.5pt;">serviceHostingEnvironment</span><span style="font-family:&amp;font-size:7.5pt;">&gt;</span><span style="font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-family:&amp;font-size:7.5pt;">  &lt;/</span><span style="font-family:&amp;font-size:7.5pt;">system.serviceModel</span><span style="font-family:&amp;font-size:7.5pt;">&gt;</span><span style="font-family:&amp;font-size:7.5pt;"> </span></p></p>

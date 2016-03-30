@@ -1,0 +1,20 @@
+---
+layout: post
+title: Service Bus Server Install Experience
+date: 2012-07-17 20:32:53.000000000 +05:00
+type: post
+published: true
+status: publish
+categories: []
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Today I installed <a href="http://www.microsoft.com/en-us/download/details.aspx?id=30376">Service Bus Server Beta</a> release and the overall install experience was fairly smooth until I reached the New-SBFarm step of the ‘<a href="http://msdn.microsoft.com/en-us/library/jj193021(v=azure.10)">Getting started’</a> tutorial. The cmdlet just seems to hang for few minutes and failed ultimately – I tried on another machine &amp; got same results. After lot of head–scratching I narrowed down the issue to SQL connectivity. Turns out New-SBFarm create 3 different databases, Farm management DB, Gateway DB &amp; the message container database. The first two DBs are created by the cmdlet itself &amp; it uses the Connection String passed into the cmdlet and just replaces the DB name. The message container DB creation is handled by another cmdlet ‘New-SBMessageContainer’ which uses the FQDN of the database server. </p>
+<p>When server is identified using FQDN, SQL client code treats the connection as ‘Remote’ and because I was using a named instance – it tries to resolve the name using SQL Browser service which was by default disabled :( </p>
+<p>Hence the cmdlet hanged until connection request timeout – Enabling remote connections on Sql express &amp; starting the SQL Browser service has fixed the issue. </p>

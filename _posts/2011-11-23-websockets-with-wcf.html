@@ -1,0 +1,104 @@
+---
+layout: post
+title: WebSockets with WCF
+date: 2011-11-23 14:23:04.000000000 +05:00
+type: post
+published: true
+status: publish
+categories: []
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Notification &amp; “Duplex communication” are important scenario over the internet but firewalls and browser limitations makes them very hard to implement. In the browser world, tricks like <a href="http://en.wikipedia.org/wiki/Push_technology#Long_polling">long polling</a> is commonly used to implement server-push requirements. For non-browser scenarios relay technologies like <a href="http://msdn.microsoft.com/en-us/library/windowsazure/ee732537.aspx">Azure Service Bus</a> overcome the lack of inbound connectivity by creating a relay in the cloud where both client &amp; server connects by making an outbound connection. Both long polling &amp; relay works but are not optimum solutions due to latency and the complexity involved. </p>
+<p>WebSockets is designed to address some of these limitation. With WebSockets, a client &amp; server can <em>upgrade </em>an existing HTTP connection to a full-duplex TCP/IP connection or setup a new WebSockets connection using an HTTP based handshake. WebSockets uses standard HTTP ports (80, 443) so it’s just works with Firewall &amp; the existing security infrastructure. WebSockets technology bucket has following two parts:</p>
+<ol>
+<li>WebSockets Protocol&#160; (Currently being standardized by IETF) </li>
+<li>WebSockets JavaScript API (Currently being standardized by W3C) </li>
+</ol>
+<p>Windows “8” has native support for WebSockets protocol &amp; there are quite a few API (native &amp; managed) available for programing WebSockets servers &amp; clients on windows. In addition, IE 10 supports both Web Sockets protocol &amp; the JavaScript API.</p>
+<p><strong>Client:</strong></p>
+<ul>
+<li>IE 10 </li>
+<li>WinRT </li>
+</ul>
+<p><strong>Server:</strong></p>
+<ul>
+<li>Native windows implementation ( &gt;= Windows “8”)
+<ul>
+<li>IIS 8.0 </li>
+</ul>
+</li>
+<li>System.Net.WebSockets (Managed Wrapper)
+<ul>
+<li>HttpListener </li>
+</ul>
+</li>
+<li>System.Web (ASP.net)
+<ul>
+<li>HttpContext </li>
+</ul>
+</li>
+<li>System.ServiceModel (WCF)
+<ul>
+<li>NetHttpBinding </li>
+</ul>
+</li>
+</ul>
+<p>WCF supported duplex services since V1 but these required either a duplex transport binding (netTcpBinding, netNamedPipeBinding) or <strong>wsDualHttpBinding</strong> which forces a client to have a public URI accessible to service (and to the world <img style="border-style:none;" class="wlEmoticon wlEmoticon-smile" alt="Smile" src="{{ site.baseurl }}/assets/wlemoticon-smile.png" />)&#160;&#160; running on the public internet. </p>
+<p>wsDualHttpBinding is not really suitable for internet scenarios due to inbound connectivity issues. NetTcpBinding could also be problematic in tightly-locked down environments allowing only outbound connections to port 80/443. </p>
+<p>With the WebSockets support in Windows, WCF introduced a new Binding <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.nethttpbinding(v=vs.110).aspx">NetHttpBinding</a> which does binary SOAP messaging over WebSockets protocol and overcome the limitations of existing bindings. Below I created a basic duplex WCF service </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:3a6e51c7-d203-45c0-9fe2-1720122ecfeb" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Basic Service</div>
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="background:#ffffff;color:#000000;">[</span><span style="background:#ffffff;color:#2b91af;">ServiceContract</span><span style="background:#ffffff;color:#000000;">(CallbackContract=</span><span style="background:#ffffff;color:#0000ff;">typeof</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#2b91af;">IPing</span><span style="background:#ffffff;color:#000000;">))]</span><br /> <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#0000ff;">interface</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">IPing</span><br /> <span style="background:#ffffff;color:#000000;">{</span><br />     <span style="background:#ffffff;color:#000000;">[</span><span style="background:#ffffff;color:#2b91af;">OperationContract</span><span style="background:#ffffff;color:#000000;">(IsOneWay=</span><span style="background:#ffffff;color:#0000ff;">true</span><span style="background:#ffffff;color:#000000;">)]</span><br />     <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">void</span><span style="background:#ffffff;color:#000000;"> Ping(</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;"> msg);</span><br /> <span style="background:#ffffff;color:#000000;">}</span></p>
+<p> <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">class</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">PingService</span><span style="background:#ffffff;color:#000000;"> : </span><span style="background:#ffffff;color:#2b91af;">IPing</span><br /> <span style="background:#ffffff;color:#000000;">{</span><br />     <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#0000ff;">void</span><span style="background:#ffffff;color:#000000;"> Ping(</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;"> msg)</span><br />     <span style="background:#ffffff;color:#000000;">{</span><br />         <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#2b91af;">Console</span><span style="background:#ffffff;color:#000000;">.WriteLine(</span><span style="background:#ffffff;color:#a31515;">&quot;Service: {0}&quot;</span><span style="background:#ffffff;color:#000000;">,msg);</span><br />         <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> chnl = </span><span style="background:#ffffff;color:#2b91af;">OperationContext</span><span style="background:#ffffff;color:#000000;">.Current.GetCallbackChannel&lt;</span><span style="background:#ffffff;color:#2b91af;">IPing</span><span style="background:#ffffff;color:#000000;">&gt;();</span></p>
+<p>         <span style="background:#ffffff;color:#000000;">chnl.Ping(</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;">.Format(</span><span style="background:#ffffff;color:#a31515;">&quot;You said &#092;&quot;{0}&#092;&quot;?&quot;</span><span style="background:#ffffff;color:#000000;">, msg));</span><br />     <span style="background:#ffffff;color:#000000;">}</span><br /> <span style="background:#ffffff;color:#000000;">}</span></div>
+</p></div>
+</p></div>
+<p>Standard WCF hosting code with one endpoint using the new binding (line 5 &amp; 14) </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:8d879469-5ba7-4602-8cb1-bcffa34824f1" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Hosting</div>
+<div style="background:#ddd;max-height:400px;overflow:auto;">
+<ol style="background:#ffffff;white-space:nowrap;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">static</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#0000ff;">void</span><span style="background:#ffffff;color:#000000;"> Main(</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;">[] args)</span></li>
+<li><span style="background:#ffffff;color:#000000;">{</span></li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> sh = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">ServiceHost</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#0000ff;">typeof</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#2b91af;">PingService</span><span style="background:#ffffff;color:#000000;">), </span></li>
+<li>        <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">Uri</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#a31515;">&quot;http://localhost:9090/&quot;</span><span style="background:#ffffff;color:#000000;">));</span></li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> binding = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">NetHttpBinding</span><span style="background:#ffffff;color:#000000;">();</span></li>
+<li>    <span style="background:#ffffff;color:#000000;">sh.AddServiceEndpoint(</span><span style="background:#ffffff;color:#0000ff;">typeof</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#2b91af;">IPing</span><span style="background:#ffffff;color:#000000;">), binding, </span><span style="background:#ffffff;color:#a31515;">&quot;Ping&quot;</span><span style="background:#ffffff;color:#000000;">);</span></li>
+<li>&nbsp;</li>
+<li>    <span style="background:#ffffff;color:#000000;">sh.Open();</span></li>
+<li>&nbsp;</li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#2b91af;">Console</span><span style="background:#ffffff;color:#000000;">.WriteLine(</span><span style="background:#ffffff;color:#a31515;">&quot;Service ready...&quot;</span><span style="background:#ffffff;color:#000000;">);</span></li>
+<li>&nbsp;</li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> cf = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">DuplexChannelFactory</span><span style="background:#ffffff;color:#000000;">&lt;</span><span style="background:#ffffff;color:#2b91af;">IPing</span><span style="background:#ffffff;color:#000000;">&gt;(</span></li>
+<li>        <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">InstanceContext</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">PingBack</span><span style="background:#ffffff;color:#000000;">()), </span></li>
+<li>        <span style="background:#ffffff;color:#000000;">binding,</span></li>
+<li>        <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">EndpointAddress</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#a31515;">&quot;http://localhost:8080/Ping&quot;</span><span style="background:#ffffff;color:#000000;">));</span></li>
+<li>&nbsp;</li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> chnl = cf.CreateChannel();</span></li>
+<li>    <span style="background:#ffffff;color:#000000;">chnl.Ping(</span><span style="background:#ffffff;color:#a31515;">&quot;Hello!&quot;</span><span style="background:#ffffff;color:#000000;">);</span></li>
+<li>&nbsp;</li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#2b91af;">Console</span><span style="background:#ffffff;color:#000000;">.WriteLine(</span><span style="background:#ffffff;color:#a31515;">&quot;Finishing...&quot;</span><span style="background:#ffffff;color:#000000;">);</span></li>
+<li>    <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#2b91af;">Console</span><span style="background:#ffffff;color:#000000;">.ReadLine();</span></li>
+<li><span style="background:#ffffff;color:#000000;">}</span></li>
+</ol></div>
+</p></div>
+</p></div>
+<p>and finally my callback handler class.</p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:d45bbf48-7f7d-4a56-97ef-d32cf2d94ad6" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Callback handler</div>
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#0000ff;">class</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#2b91af;">PingBack</span><span style="background:#ffffff;color:#000000;"> : </span><span style="background:#ffffff;color:#2b91af;">IPing</span><br /> <span style="background:#ffffff;color:#000000;">{</span><br />     <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#000000;"> </span><span style="background:#ffffff;color:#0000ff;">void</span><span style="background:#ffffff;color:#000000;"> Ping(</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;"> msg)</span><br />     <span style="background:#ffffff;color:#000000;">{</span><br />         <span style="background:#ffffff;color:#000000;"></span><span style="background:#ffffff;color:#2b91af;">Console</span><span style="background:#ffffff;color:#000000;">.WriteLine(</span><span style="background:#ffffff;color:#a31515;">&quot;Client: {0}&quot;</span><span style="background:#ffffff;color:#000000;">,msg);</span><br />     <span style="background:#ffffff;color:#000000;">}</span><br /> <span style="background:#ffffff;color:#000000;">}</span></div>
+</p></div>
+</p></div>
+<p>Running the project I get the expected output. </p>
+<p>By default, WebSockets protocol is allowed on NetHttpBinding i.e. if your contract is a Duplex contract NetHttpBinding automatically upgrades to WebSockets protocol. Out of box, this binding does SOAP messaging and encodes SOAP using the WCF binary encoding. You can reuse the WebSockets transport binding element in a custom binding to support other encodings &amp; protocols and I’ll talk about this in a future post. </p>
+<p><a href="http://zuahmed.files.wordpress.com/2011/11/image.png"><img style="background-image:none;padding-left:0;padding-right:0;display:inline;padding-top:0;border-width:0;margin:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="244" height="76" /></a></p>

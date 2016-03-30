@@ -1,0 +1,74 @@
+---
+layout: post
+title: Federating Azure AD with thinktecture Identity Server - Notes
+date: 2015-02-06 12:45:16.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Azure AD
+- Federation/STS
+- Office 365
+- SSO
+- Windows Azure
+tags:
+- Long overdue
+meta:
+  _edit_last: '13661190'
+  geo_public: '0'
+  publicize_linkedin_url: https://www.linkedin.com/updates?discuss=&scope=9788649&stype=M&topic=5969445514310090752&type=U&a=D-y8
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+  _oembed_5b16b31a6531cd28f01e91e5e005d1ef: '{{unknown}}'
+  _oembed_fd707d50d4d88921c419b971985dd5ba: '{{unknown}}'
+  _oembed_a67af01c9bee6072002ea2e248385c1c: '{{unknown}}'
+  _oembed_c031910416c27c2c7d4655bced0e50a9: '{{unknown}}'
+  _oembed_2eb1f231f3db5d5d265eb0b108bce959: '{{unknown}}'
+  _oembed_80204637ac14a01922011aca823fd4b8: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>First of all my apologies for not doing a good job here. I always planned to contribute this to the <strong>excellent </strong><a title="identity server" href="https://identityserver.github.io/Documentation/">identity server</a>  but I never got enough bandwidth to do so. I'm constantly receiving request to share the details here so I decided to share notes/steps required to enable this and hopefully someone from community would do the bits I have long promised.</p>
+<p>Here are steps...</p>
+<ol>
+<li>Create a basic STS or tweak &amp; use the lovely thinktecture IdentityServer v2 (my recommendation)</li>
+<li>Within identity server, add a Relying Party Trust to 'urn:federation:MicrosoftOnline' which is the unique identifier used by of Azure AD for federation.</li>
+<li>Establish a trust relationship between identity server and Azure AD using the <b>Set-MsolDomainAuthentication</b> cmdlet. This is how my trust relationship look like:</li>
+</ol>
+<p><a href="http://zuahmed.files.wordpress.com/2013/04/office365federationworking.png"><img style="display:inline;border:0;" title="Office365 Federation Working" src="{{ site.baseurl }}/assets/office365federationworking_thumb.png" alt="Office365 Federation Working" width="451" height="484" border="0" /></a></p>
+<p>4. The IssuerUri MUST match the issuer URI of SAML assertion.</p>
+<p><a href="https://zuahmed.files.wordpress.com/2015/02/assertion-azure-ad-fed.png"><img class="alignnone size-medium wp-image-515" src="{{ site.baseurl }}/assets/assertion-azure-ad-fed.png?w=300" alt="assertion-azure-ad-fed" width="300" height="131" /></a></p>
+<p>&nbsp;</p>
+<p>5. The protocol MSUT be <b>WS-Federation</b> for browser-based SSO</p>
+<p>6. Following claims MUST be included in the issued tokens</p>
+<ul>
+<li>http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID</li>
+<li>http://schemas.xmlsoap.org/claims/UPN</li>
+</ul>
+<p>7. The UPN must also be set as a name identifier.</p>
+<p><em>Identity server code change # 1</em></p>
+<hr />
+<p>var nameid = new Claim(ClaimTypes.NameIdentifier, "7960192");<br />
+nameid.Properties[ClaimProperties.SamlNameIdentifierFormat] = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";<br />
+var outputClaims = new List&lt;Claim&gt; {</p>
+<p>new Claim("<a href="http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID&quot;">http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID"</a>,"7960192"),<br />
+new Claim("<a href="http://schemas.xmlsoap.org/claims/UPN&quot;">http://schemas.xmlsoap.org/claims/UPN"</a>, "zulfiqar@bccoss.com"),<br />
+nameid<br />
+};</p>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>8. The signing algorithm MUST be <b>SHA-1. </b>Signing certificate can be a self-signed SSL certificate.</p>
+<p><em>Identity server code change # 2</em></p>
+<hr />
+<p style="text-align:left;">scope.SigningCredentials = new X509SigningCredentials(signingCert, SecurityAlgorithms.RsaSha1Signature, SecurityAlgorithms.Sha1Digest);</p>
+<hr />
+<p style="text-align:left;">
+<p>&nbsp;</p>
+<p>9. The token MUST be sent to: <strong>https://login.microsoftonline.com/login.srf</strong></p>
+<p>Looking forward to see this in identity server soon...</p>

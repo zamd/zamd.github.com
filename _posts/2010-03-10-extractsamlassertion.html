@@ -1,0 +1,126 @@
+---
+layout: post
+title: ExtractSAMLAssertion
+date: 2010-03-10 14:57:28.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Federation/STS
+- WIF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_e0f956eb0e80c21724f534eced661325: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Few people have asked me for the source code of <strong><span style="font-size:12pt;font-family:&quot;">ExtractSAMLAssertion</span></strong><span style="font-size:12pt;font-family:&quot;"> </span>helper method/class, which I have used in my article and blog posts. So here you go...</p>
+<p class="MsoNormal">Please note this is just raw test code and doesn’t have any error checking and other related goodies.</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    <span style="color:blue;">class</span> <span style="color:#2b91af;">Program</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> binding = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSHttpBinding</span>(<span style="color:#2b91af;">SecurityMode</span>.Message);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            binding.Security.Message.ClientCredentialType = <span style="color:#2b91af;">MessageCredentialType</span>.None;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            binding.Security.Message.EstablishSecurityContext = <span style="color:blue;">false</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> fac = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSTrustChannelFactory</span>(binding, <span style="color:#a31515;">"http://localhost:9000/STS"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            fac.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = <span style="color:#2b91af;">X509CertificateValidationMode</span>.None;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            fac.Open();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> rst = <span style="color:blue;">new</span> <span style="color:#2b91af;">RequestSecurityToken</span> { </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                AppliesTo = <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:#a31515;">"http://localhost"</span>),</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                RequestType = <span style="color:#2b91af;">WSTrustFeb2005Constants</span>.<span style="color:#2b91af;">RequestTypes</span>.Issue</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            };</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;background:yellow;">var</span><span style="background:yellow;"> token = fac.CreateChannel().Issue(rst) <span style="color:blue;">as</span> <span style="color:#2b91af;">GenericXmlSecurityToken</span>;</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> rpCert = <span style="color:blue;">new</span> <span style="color:#2b91af;">X509Certificate2</span>(<span style="color:#a31515;">"localhost.pfx"</span>, <span style="color:#a31515;">"a"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> xml = <span style="background:yellow;">ExtractSAMLAssertion(token, rpCert);</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:blue;">string</span> ExtractSAMLAssertion(<span style="color:#2b91af;">GenericXmlSecurityToken</span> token, <span style="color:#2b91af;">X509Certificate2</span> rpCert)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">string</span> txtAssertion = <span style="color:blue;">string</span>.Empty;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> handlerCol = <span style="color:#2b91af;">SecurityTokenHandlerCollection</span>.CreateDefaultSecurityTokenHandlerCollection();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">var</span> han = handlerCol.OfType&lt;<span style="color:#2b91af;">EncryptedSecurityTokenHandler</span>&gt;().FirstOrDefault();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">if</span> (han != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                han.Configuration.ServiceTokenResolver = <span style="color:blue;background:yellow;">new</span><span style="background:yellow;"> <span style="color:#2b91af;">EncryptedKeyResolver</span>(rpCert);</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> sr = <span style="color:blue;">new</span> <span style="color:#2b91af;">StringReader</span>(token.TokenXml.OuterXml);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> rdr2 = <span style="color:#2b91af;">XmlReader</span>.Create(sr);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> rtok = han.ReadToken(rdr2) <span style="color:blue;">as</span> <span style="color:#2b91af;">SamlSecurityToken</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> stat = rtok.Assertion.Statements[0];</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> ms = <span style="color:blue;">new</span> <span style="color:#2b91af;">MemoryStream</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> memWriter = <span style="color:#2b91af;">XmlDictionaryWriter</span>.CreateTextWriter(ms);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                stat.WriteXml(memWriter, <span style="color:blue;">new</span> <span style="color:#2b91af;">SamlSerializer</span>(), <span style="color:blue;">new</span> <span style="color:#2b91af;">WSSecurityTokenSerializer</span>());</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                memWriter.Flush();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                ms.Seek(0, <span style="color:#2b91af;">SeekOrigin</span>.Begin);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                txtAssertion = <span style="color:blue;">new</span> <span style="color:#2b91af;">StreamReader</span>(ms).ReadToEnd();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">return</span> txtAssertion;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    <span style="color:blue;">class</span> <span style="color:#2b91af;">EncryptedKeyResolver</span> : <span style="color:#2b91af;">SecurityTokenResolver</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:green;">// Relying party certificate - must hold private key.</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:#2b91af;">X509Certificate2</span> rpCert;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:blue;">public</span> EncryptedKeyResolver(<span style="color:#2b91af;">X509Certificate2</span> rpCert)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">this</span>.rpCert = rpCert;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">bool</span> TryResolveSecurityKeyCore(<span style="color:#2b91af;">SecurityKeyIdentifierClause</span> keyIdentifierClause, <span style="color:blue;">out</span> <span style="color:#2b91af;">SecurityKey</span> key)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            key = <span style="color:blue;">null</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">try</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">var</span> ekec = keyIdentifierClause <span style="color:blue;">as</span> <span style="color:#2b91af;">EncryptedKeyIdentifierClause</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">if</span> (ekec != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                    <span style="color:blue;">switch</span> (ekec.EncryptionMethod)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                        <span style="color:blue;">case</span> <span style="color:#a31515;">"http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p"</span>:</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                            {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                                <span style="color:blue;background:yellow;">var</span><span style="background:yellow;"> encKey = ekec.GetEncryptedKey();</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                                <span style="color:blue;background:yellow;">var</span><span style="background:yellow;"> rsa = rpCert.PrivateKey <span style="color:blue;">as</span> <span style="color:#2b91af;">RSACryptoServiceProvider</span>;</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                                <span style="color:blue;background:yellow;">var</span><span style="background:yellow;"> decKey = rsa.Decrypt(encKey, <span style="color:blue;">true</span>);</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                                k<span style="background:yellow;">ey = <span style="color:blue;">new</span> <span style="color:#2b91af;">InMemorySymmetricSecurityKey</span>(decKey);</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                                <span style="color:blue;">return</span> <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                            }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                    <span style="color:blue;">var</span> data = ekec.GetEncryptedKey();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                    <span style="color:blue;">var</span> id = ekec.EncryptingKeyIdentifier;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">catch</span> (<span style="color:#2b91af;">Exception</span> eexx)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:#2b91af;">Console</span>.WriteLine(eexx);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">                <span style="color:blue;">throw</span> eexx;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">return</span> <span style="color:blue;">false</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">bool</span> TryResolveTokenCore(<span style="color:#2b91af;">SecurityKeyIdentifierClause</span> keyIdentifierClause, <span style="color:blue;">out</span> <span style="color:#2b91af;">SecurityToken</span> token)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">NotImplementedException</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">bool</span> TryResolveTokenCore(<span style="color:#2b91af;">SecurityKeyIdentifier</span> keyIdentifier, <span style="color:blue;">out</span> <span style="color:#2b91af;">SecurityToken</span> token)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">            <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">NotImplementedException</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:&quot;">    }</span></p>
+</div>

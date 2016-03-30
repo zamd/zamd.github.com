@@ -1,0 +1,53 @@
+---
+layout: post
+title: Using Request Headers for Metadata Address
+date: 2010-01-14 19:44:42.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_5cd81524cde213ae44c18d5697d8c0b5: '{{unknown}}'
+  _oembed_1aca58395926ec55482f6fa83cd381dc: '{{unknown}}'
+  _oembed_98f8e56cadfd775301a3f35660fe4405: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">WCF by default adds the listen address of the endpoints in the WSDL so in a scenario where the private address of the server is different from the public address you get incorrect endpoint address in WSDL. </span></p>
+<p class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">For example if a service is listening on <a href="http://localhost:7721/">http://localhost:7721/</a> and you access its metadata using a virtual IP <a href="http://102.212.0.117/?wsdl">http://102.212.0.117/?wsdl</a></span>, <span style="color:#1f497d;">you get following:</span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><img src="{{ site.baseurl }}/assets/image0021.jpg" border="0" alt="" width="582" height="78" /></span><span style="color:#1f497d;" lang="EN-US"> </span></p>
+<p class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">Now this behavior might not work in certain scenarios and you want the metadata generation to dynamically pick the address from the request headers, similar to ASMX web services.</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">UseRequestHeadersForMetadataAddressBehavior</span><span style="color:#1f497d;"> enables exactly this. This opt-in behavior sets the address of endpoints dynamically, based on the request header.  </span></p>
+<p class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">Like all other WCF behaviors, this behavior can be enabled either in the code or config.</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">sh.Description.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">UseRequestHeadersForMetadataAddressBehavior</span>());</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">&lt;</span><span style="font-size:9.5pt;font-family:&amp;">system.serviceModel</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">  &lt;</span><span style="font-size:9.5pt;font-family:&amp;">behaviors</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">    &lt;</span><span style="font-size:9.5pt;font-family:&amp;">serviceBehaviors</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">      &lt;</span><span style="font-size:9.5pt;font-family:&amp;">behavior</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">        &lt;</span><span style="font-size:9.5pt;font-family:&amp;">useRequestHeadersForMetadataAddress</span><span style="font-size:9.5pt;font-family:&amp;">/&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">      &lt;/</span><span style="font-size:9.5pt;font-family:&amp;">behavior</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">    &lt;/</span><span style="font-size:9.5pt;font-family:&amp;">serviceBehaviors</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">  &lt;/</span><span style="font-size:9.5pt;font-family:&amp;">behaviors</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&amp;">&lt;/</span><span style="font-size:9.5pt;font-family:&amp;">system.serviceModel</span><span style="font-size:9.5pt;font-family:&amp;">&gt;</span></p>
+<p class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">As part of this behavior, you can also specify default ports for different schemes (http,https etc..). These default ports come into action in following scenarios:</span></p>
+<ul>
+<li>
+<div class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">When metadata is accessed over http, all http based URIs are substitued with the Hostname and host port from the Host header</span></div>
+</li>
+<li>
+<div class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">All https based URIs picks the default port registered against https scheme</span></div>
+</li>
+<li>
+<div class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">Similarly when metadata is accessed over https, all https URIs pick up the host and port from the host header and http based URIs used the default port registered against http scheme</span></div>
+</li>
+</ul>
+<p class="MsoNormal"><span style="color:#1f497d;" lang="EN-US">This behavior is added in .NET 4.0 and there is a QFE available for 3.5 SP1: <a href="http://support.microsoft.com/kb/971842">http://support.microsoft.com/kb/971842</a></span></p>
+</div>

@@ -1,0 +1,56 @@
+---
+layout: post
+title: Creating a Basic STS using Geneva Framework( aka Zermatt)
+date: 2008-07-10 17:21:57.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- Geneva
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Zermatt (Geneva Framework) is an identity framework built on top of solid WCF foundation. It makes writing custom STSs a breeze as the amount of code you have to write is substantially low compared with, when building the same STS directly on top of WCF. In this post I will show you how to write a basic STS using Zermatt. </p>
+<p class="MsoNormal">This STS will be used by active clients, which mean, it will expose its token issuance functionality using the WS-Trust protocol. In a later post I will talk about passive clients and WS-Federation protocol. </p>
+<p class="MsoNormal">So the first step is to drive a class from Zermatt provided <span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">SecurityTokenService </span>abstract base class. This class provides most of the plubming required implementing an STS and you have to only provide missing pieces in your derived class. </p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">class</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:#2b91af;">CustomSecurityTokenService</span> : <span style="color:#2b91af;">SecurityTokenService</span>{}</span> </p>
+<p class="MsoNormal">Next you have to override following two methods: </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">Scope</span> GetScope(<span style="color:#2b91af;">IClaimsPrincipal</span> principal, <span style="color:#2b91af;">RequestSecurityToken</span> request)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:#2b91af;">Scope</span> scope = <span style="color:blue;">base</span>.GetScope(principal, request);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        scope.EncryptingCredentials = <span style="color:blue;">new</span> <span style="color:#2b91af;">X509EncryptingCredentials</span>(<span style="color:#2b91af;">CertificateUtil</span>.GetCertificate(<span style="color:#2b91af;">StoreName</span>.My, <span style="color:#2b91af;">StoreLocation</span>.LocalMachine, <span style="color:#a31515;">"CN=localhost"</span>));</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">return</span> scope;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ClaimsIdentityCollection</span>  GetOutputSubjects(<span style="color:#2b91af;">Scope</span> scope, <span style="color:#2b91af;">IClaimsPrincipal</span> principal, <span style="color:#2b91af;">RequestSecurityToken</span> request)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:#2b91af;">ClaimsIdentityCollection</span> collection = <span style="color:blue;">new</span> <span style="color:#2b91af;">ClaimsIdentityCollection</span>();</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        collection.Add( <span style="color:blue;">new</span> <span style="color:#2b91af;">ClaimsIdentity</span>( <span style="color:blue;">new</span> <span style="color:#2b91af;">Claim</span>( <span style="color:#2b91af;">ClaimTypes</span>.Name, <span style="color:#a31515;">"zulfiqar"</span> ) ) );</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">return</span> collection;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal">In the <strong>GetScope</strong> method, you get all the information about the requestor and based on that you can select credentials which will be used to encrypt the issued token to the requestor. You can do that in the <span style="font-size:10pt;font-family:'Courier New';">GetOutputSubjects </span>method as well in which case you don’t need to override GetScope. </p>
+<p class="MsoNormal">In <strong>GetOutputSubjects</strong> method you create a collection of claims which will be added to the issued token. In a production STS, this is where you will access the external system to get information about the requestor and will create claims based on that information. In this example, I’m simply returning a single Name claim. That’s it - you are done with STS part. </p>
+<p class="MsoNormal">Now as an STS is essentially a service, so you need to host it inside a ServiceHost and expose it’s functionality using an Endpoint (Standard WCF stuff). Zermatt also provides a custom service host, known as <span style="font-family:Courier New;"><span style="color:#2b91af;">WSTrustServiceHost </span></span>– which adds Zermatt specific stuff (configuration etc) to the standard ServiceHost class. </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    SecurityTokenServiceConfiguration config =</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">new</span> SecurityTokenServiceConfiguration(stsAddress, <span style="color:blue;">new</span> X509SigningCredentials(stsCert));</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    stsConfig.SecurityTokenService = <span style="color:blue;">typeof</span>(<span style="color:#2b91af;">CustomSecurityTokenService</span>);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:green;">//Create host based on our configuration.</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    stsHost = <span style="color:blue;">new</span> WSTrustServiceHost(stsConfig, <span style="color:blue;">new</span> <span style="color:#2b91af;">Uri</span>(stsAddress));</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:green;">// Add an endpoint - this can be added using standard config mechansims as well.</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    stsHost.AddServiceEndpoint(<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">IWSTrustFeb2005SyncContract</span>),</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">       <span style="color:blue;">new</span> <span style="color:#2b91af;">WSHttpBinding</span>(), <span style="color:blue;">new</span> <span style="color:#2b91af;">Uri</span>(stsAddress));</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:green;">// open the host now.           </span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    stsHost.Open();</span> </p>
+<p class="MsoNormal">At this point our STS is ready to go. You might have noticed that I’m using the standard WSHttpBinding, which mean my STS will authenticate requestors using windows authenticaiton (default for WSHttpBinding) – and then I can use all that information to inlcude appropraite claims in the returned SAML token. One last important point is that Zermatt is build on top of WCF security model – so I can change the binding to require a certificate or a userName to issue a SAML token.  </p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal">In the next post I will show how to a write a basic test harnesses for our Security Token Service. </p>
+<p class="MsoNormal"> </p>
+</div>

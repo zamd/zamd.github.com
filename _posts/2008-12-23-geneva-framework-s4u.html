@@ -1,0 +1,39 @@
+---
+layout: post
+title: Geneva Framework & S4U
+date: 2008-12-23 18:08:57.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Geneva
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Current bits of Geneva framework shipped with a service known as <b>Microsoft &quot;Geneva&quot; Claims To NT Token Service</b>. This service can be used to get a Kerberos token for a user without requiring its password. Windows Server 2003 added a little known extension to Kerberos known as Service-4-User (S4U) and this service internally uses this feature to get a Kerberos token.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">S4U tokens usually have some special restriction to avoid their misuse. So if service is not running under LocalSystem account then the returned token will only have &nbsp;impersonation level of <b>Identify</b>, so you can query the returned token for group information etc but you cannot impersonate it to open kernel objects etc. &nbsp;However if the caller is running as LocalSystem then LSA returns a token with the impersonation level of <b>Impersonate</b> and you can indeed impersonate the user and access kernel object on his behalf. &nbsp;&#8220;Claims To NT Token Service&#8221; runs under LocalSystem &#8211; so a token acquired using this service can be used to impersonate as well. </p>
+<p class="MsoNormal">This service is actually exposed using a WCF endpoint and as part of Geneva framework you get a proxy client for this service as well. Here is an example of using this proxy client to get a token.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">class</span> <span style="color:#2B91AF;">Program</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> filePath = <span style="color:#A31515;">@&quot;C:\temp\data.txt&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> data;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> wi = <span style="color:#2B91AF;">S4UClient</span>.UpnLogon(<span style="color:#A31515;">&quot;abu@bccoss.com&quot;</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">using</span> (<span style="color:blue;">var</span> wic = wi.Impersonate())</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; data = <span style="color:#2B91AF;">File</span>.ReadAllText(filePath);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+</p></div>

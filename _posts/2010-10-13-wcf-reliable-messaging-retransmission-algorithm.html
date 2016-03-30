@@ -1,0 +1,70 @@
+---
+layout: post
+title: WCF Reliable Messaging Retransmission Algorithm
+date: 2010-10-13 21:54:25.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_7891071e9bc6aa565c314f7b4704817f: '{{unknown}}'
+  _oembed_1685a03b820d231d84444aa50b1bf126: '{{unknown}}'
+  _oembed_21c55bd92b52a274995ee0de1021014e: '{{unknown}}'
+  _oembed_727375ce1d32e9212b7b26893bd6f6bb: '{{unknown}}'
+  _oembed_1b476e613dcbc70711b053d616320e78: '{{unknown}}'
+  _oembed_c5698d9ac50725740f9493b8ec1a28fa: '{{unknown}}'
+  _oembed_7e15f0ecb5c3dde159b4b33c330346a2: '{{unknown}}'
+  _oembed_83dc4d7f89a8552d9f6f3db80f76aa52: '{{unknown}}'
+  _oembed_fd62c2915babf9f7d201214e6d6c66a1: '{{unknown}}'
+  _oembed_5fdb839f9026f7224279a767aa365fe8: '{{unknown}}'
+  _oembed_584f6cee524ca0eb40cd1e8cb8e1fc46: '{{unknown}}'
+  _oembed_cc2f7b10d3fbe2d58e5eb6a4140dbd22: '{{unknown}}'
+  _oembed_1f7176249577e3f85e7d761b65817db3: '{{unknown}}'
+  _oembed_96074abd77cb49f6aa015d278bb10a60: '{{unknown}}'
+  _oembed_e08ed3874d78f73c395e6916bc532c52: '{{unknown}}'
+  _oembed_24c633cab15f6e614b8eb4b4d95a2936: '{{unknown}}'
+  _oembed_8b54ec6ae375f33651f61e42aa8297d7: '{{unknown}}'
+  _oembed_683a6c6b29bddd33af94aefde7b1990b: '{{unknown}}'
+  _oembed_006f7b19e3c15501b9261c1254804a69: '{{unknown}}'
+  _oembed_6ba59ef6327b278b5445acc1758d297e: '{{unknown}}'
+  _oembed_6341e5f4f15df80014289c291ffd7b52: '{{unknown}}'
+  _oembed_e7a83b782b75f9b0f8c1cb7b737ae3a5: '{{unknown}}'
+  _oembed_ac946b0a9c183ff3dccecae9421768a4: '{{unknown}}'
+  _oembed_7be8164233f9a5fbd20e8829b8a9b423: '{{unknown}}'
+  _oembed_9f229dadc4790f02673885a84ba46ebf: '{{unknown}}'
+  _oembed_d74a44104c880b358b0e20c304b05161: '{{unknown}}'
+  _oembed_0f75d743fadce98afcf6b26dc2c45505: '{{unknown}}'
+  _oembed_895982b7fa1f1e3d5c7becfdc91d862e: '{{unknown}}'
+  _oembed_254e8290b9e78cf2636a6a5f4abe55fe: '{{unknown}}'
+  _oembed_d0e281c6b958df7d03f852f06bfe65e4: '{{unknown}}'
+  _oembed_fdd3c3da21476616022496b05745ce59: '{{unknown}}'
+  _oembed_cef2216e76b9bfe1b6cd8cc534f0308f: '{{unknown}}'
+  _oembed_272e70e264f0dd2aa16b77069be86bf2: '{{unknown}}'
+  _oembed_083f88403b34cd822dbe7211d48085ea: '{{unknown}}'
+  _oembed_1658640d1576149997d4c3570ab886bd: '{{unknown}}'
+  _oembed_138170eaacc18382df2c5e4daff7c9d3: '{{unknown}}'
+  _oembed_49ff0f15ed07967ba3737886a0f29afa: '{{unknown}}'
+  _oembed_6a8e89dbc682b753553cdd80cb276afe: '{{unknown}}'
+  _oembed_88ef41a026697ed26ba2a22568700c5e: '{{unknown}}'
+  _oembed_899d3108c39e22e2d29ca51361388b22: '{{unknown}}'
+  _oembed_1e465d312e302d1b40447dd6baa14a7c: '{{unknown}}'
+  _oembed_2c0ca2fefbcc28d6d1a3f91fb41c8f93: '{{unknown}}'
+  _oembed_6a4af17abb639a93cfbcabd63876a8a4: '{{unknown}}'
+  _oembed_1651cb71abd6ea4b9d33dc1c319d0bf6: '{{unknown}}'
+  _oembed_ab1a2b105b69469144fb88bfa026218b: '{{unknown}}'
+  _oembed_1fdf96aa565719d8634b48e5581ef057: '{{unknown}}'
+  _oembed_d2c95999ab42acb98f0fd35e8c0a0e4a: '{{unknown}}'
+  _oembed_b26b86d9bba3b69e7583aacb3a121ce7: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>When configuring WS-Reliable messaging, you would notice that even though number of retries (MaxRetryCount) is configurable but the interval in which retries are attempted is NOT configurable.  This is because WCF uses an <a href="http://en.wikipedia.org/wiki/Exponential_backoff">exponential back-off</a> congestion control algorithm to calculate the retry timeout.  This algorithm is internal to WCF and is NOT configurable.</p>
+<p>The initial retry time is calculated based on the <em>“session initiation time”</em> (Time difference between the CreateSequence and CreateSequenceResponse). The algorithm doubles the retransmission delay with every attempt until MaxRetryCount reached.</p>
+<p>If you try to send large messages inside a reliable session you might see additional retransmission fairly quickly. As the RM implementation calculates its initial retransmission timeout based on the “<em>session initiation time” </em>which remains quite small value (&lt; 50ms ) in most cases. Now if the second message is a large one – the retry timeout expires and message is retransmitted.  This behaviour is by design as Reliable messaging is not intended to be used for large messages - this is why it doesn’t support streaming. If your goal is to send large messages and survive broken connections, then you should look at ReliableSessions along with the ChunckingChannel.</p>

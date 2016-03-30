@@ -1,0 +1,62 @@
+---
+layout: post
+title: MetadataExchangeClient message logging
+date: 2009-04-13 21:39:22.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_89c96c0d3289910405cdd620bfb0d900: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Is to possible to add a custom behavior in the channel factory created by MetadataExchangeClient?</p>
+<p class="MsoNormal">For example, is it possible to hook a message inspector to the MetadataExchangeClient  so that generated message can be inspected/logged?</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal">It turns that default ctor of MetadataExchangeClient picks the endpoint information (including behavior configuration) from the config file. You can easily achieve this by creating a behavior extension and using it on MEX endpoint. Here are steps:</p>
+<p class="MsoNormal"><strong>Step 1</strong>: create appropriate config entries</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">&lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">system.serviceModel</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">  &lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">client</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">    &lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">endpoint</span><span style="font-size:10pt;font-family:&quot;color:blue;"> </span><span style="font-size:10pt;font-family:&quot;color:red;">address</span><span style="font-size:10pt;font-family:&quot;color:blue;">=</span><span style="font-size:10pt;font-family:&quot;">"<span style="color:blue;">http://localhost:9090/mex</span>"<span style="color:blue;"> </span><span style="color:red;">binding</span><span style="color:blue;">=</span>"<span style="color:blue;">mexHttpBinding</span>"<span style="color:blue;"> </span><span style="color:red;">contract</span><span style="color:blue;">=</span>"<span style="color:blue;">IMetadataExchange</span>"<span style="color:blue;"> </span><span style="color:red;">behaviorConfiguration</span><span style="color:blue;">=</span>"<span style="color:blue;">epBv</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">  &lt;/</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">client</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">  &lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">behaviors</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">    &lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">endpointBehaviors</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">      &lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">behavior</span><span style="font-size:10pt;font-family:&quot;color:blue;"> </span><span style="font-size:10pt;font-family:&quot;color:red;">name</span><span style="font-size:10pt;font-family:&quot;color:blue;">=</span><span style="font-size:10pt;font-family:&quot;">"<span style="color:blue;">epBv</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">        &lt;</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">customBehaviorToEnableMessageLogging</span><span style="font-size:10pt;font-family:&quot;color:blue;">/&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">      &lt;/</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">behavior</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">    &lt;/</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">endpointBehaviors</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">  &lt;/</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">behaviors</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">&lt;/</span><span style="font-size:10pt;font-family:&quot;color:#a31515;">system.serviceModel</span><span style="font-size:10pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><strong>Step2:</strong><span style="font-size:10pt;font-family:&quot;color:blue;"> </span>Create a behavior extension<span style="font-size:10pt;font-family:&quot;color:blue;"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">public</span><span style="font-size:10pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">customBehaviorToEnableMessageLogging</span> : <span style="color:#2b91af;">BehaviorExtensionElement</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">Type</span> BehaviorType</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">        <span style="color:blue;">get</span> { <span style="color:blue;">return</span> <span style="color:blue;">typeof</span>(<span style="color:#2b91af;">InspectorInstallerBehavior</span>); }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">object</span> CreateBehavior()</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">        <span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">InspectorInstallerBehavior</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">}</span></p>
+<p class="MsoNormal"><strong>Step3:</strong><span style="font-size:10pt;font-family:&quot;color:blue;"> </span>Create an endpoint behavior to install the message inspector</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;color:blue;">public</span><span style="font-size:10pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">InspectorInstallerBehavior</span> : <span style="color:#2b91af;">IEndpointBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">ClientRuntime</span> clientRuntime)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">        clientRuntime.MessageInspectors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">MyInspector</span>());</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:&quot;">}</span></p>
+<p class="MsoNormal"> </p>
+</div>

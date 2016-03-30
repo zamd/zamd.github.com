@@ -1,0 +1,115 @@
+---
+layout: post
+title: Duplex communication with .Net 3.5 Workflow Services
+date: 2009-06-05 21:28:52.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- WF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_cae267a1f04213ddc8aefc8c5ed396f9: '{{unknown}}'
+  _oembed_5e9eb51232b0021469cdcdb76395a19c: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Workflow Services was introduced as part of .Net 3.5 and enables us to use WF workflows as implementation of our WCF services. Workflows are long running by nature so the usual WCF duplex messaging constructs (where correlation between client &amp; server is done based on actual physical connection/socket) are not suitable for most cases. Primarily because it is simply not possible or practical to keep a socket open until workflow finishes its processing (which could potentially take days to produce any meaningful response).</p>
+<p class="MsoNormal">So channel based WCF duplex messaging is not good for long running scenarios. So how can we achieve duplex messaging in long running world?</p>
+<p class="MsoNormal">The general guidance is to use an explicit callback channel (sometime known as “back channel”) for notifications. You can argue that addressability of the client (who may be behind NAT/Firewall) is a real blocker for explicit back channel &amp; I totally agree. However with Relay technologies like <a href="http://www.microsoft.com/azure/netservices.mspx">.Net Service Bus</a>, reaching to the client endpoints is not an issue anymore hence explicit back channel is much more practical/feasible option now.</p>
+<p class="MsoNormal">Anyways in this post I will show you, how we can achieve durable duplex messaging using Workflow Services. Here is a basic scenario:</p>
+<p class="MsoNormal"><img src="{{ site.baseurl }}/assets/image00112345.png" border="0" alt="" width="603" height="165" /></p>
+<p class="MsoNormal">Frond end service (orange box) is a long running workflow service – actual service implementation is a WF workflow so it can go idle, persist, sit in the database &amp; brought back into memory if and when needed (all the usual stuff).</p>
+<p class="MsoNormal">Now with above setup if we do usual request-reply messaging – Send activity will simply wait for the reply, workflow will stay in memory &amp; ultimately underlying WCF call will timeout and bad things will happen (workflow might terminate etc).</p>
+<p class="MsoNormal">So first change we have to do is to move the “wait for reply logic” out of the workflow into the host. With this change workflow can go idle, persist and ultimately gets unloaded while host is still listening for the response. On the response, host can bring workflow back into memory and resume the execution.  Important takeaway is that we don’t have to do all this ourselves. Workflow Services &amp; associated “context-exchange protocol” can do most of this for us.</p>
+<p class="MsoNormal">Following is the implementation of front end service...</p>
+<p class="MsoNormal" style="text-align:center;"><img src="{{ site.baseurl }}/assets/image002123.png" border="0" alt="" width="216" height="420" /></p>
+<p class="MsoNormal">Dowork is a one-way call. As part of Dowork I’m also passing <strong>instanceId</strong> of the current workflow along with a callback address (using the standard WS-Addressing <strong>ReplyTo</strong> header - for protocol purists: this might not be the correct use of <strong>ReplyTo</strong> header but I’m using it here to keep things simple). So essentially I’m saying “please call me back on this number, when you are done.” <span style="font-family:Wingdings;">J</span></p>
+<p class="MsoNormal"> Dowork call returns immediately by triggering long running work in the Backend service. Workflow will become idle &amp; can potentially persist.</p>
+<p class="MsoNormal">To override the value of default replyTo header, I have created a simple message inspector.</p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">class</span><span style="font-size:8pt;font-family:&amp;"> <span style="color:#2b91af;">ReplyToInspector</span> : <span style="color:#2b91af;">IClientMessageInspector</span></span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">{</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:#2b91af;">EndpointAddress</span> replyTo;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">public</span> ReplyToInspector(<span style="color:#2b91af;">EndpointAddress</span> replyTo)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        <span style="color:blue;">this</span>.replyTo = replyTo;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">    #region</span><span style="font-size:8pt;font-family:&amp;"> IClientMessageInspector Members</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> AfterReceiveReply(<span style="color:blue;">ref</span> System.ServiceModel.Channels.<span style="color:#2b91af;">Message</span> reply, <span style="color:blue;">object</span> correlationState)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">public</span> <span style="color:blue;">object</span> BeforeSendRequest(<span style="color:blue;">ref</span> System.ServiceModel.Channels.<span style="color:#2b91af;">Message</span> request, <span style="color:#2b91af;">IClientChannel</span> channel)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        request.Headers.ReplyTo = replyTo;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        <span style="color:blue;">return</span> <span style="color:blue;">null</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">    #endregion</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">}</span></p>
+<p class="MsoNormal">And this can be configured in config file as:</p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">        &lt;</span><span style="font-size:8pt;font-family:&amp;color:#a31515;">endpointBehaviors</span><span style="font-size:8pt;font-family:&amp;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">          &lt;</span><span style="font-size:8pt;font-family:&amp;color:#a31515;">behavior</span><span style="font-size:8pt;font-family:&amp;color:blue;"> </span><span style="font-size:8pt;font-family:&amp;color:red;">name</span><span style="font-size:8pt;font-family:&amp;color:blue;">=</span><span style="font-size:8pt;font-family:&amp;">"<span style="color:blue;">reply</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">            &lt;</span><span style="font-size:8pt;font-family:&amp;color:#a31515;">replyTo</span><span style="font-size:8pt;font-family:&amp;color:blue;"> </span><span style="font-size:8pt;font-family:&amp;color:red;">address</span><span style="font-size:8pt;font-family:&amp;color:blue;">=</span><span style="font-size:8pt;font-family:&amp;">"<span style="color:blue;">http://localhost:43211/Callback/</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">          &lt;/</span><span style="font-size:8pt;font-family:&amp;color:#a31515;">behavior</span><span style="font-size:8pt;font-family:&amp;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">        &lt;/</span><span style="font-size:8pt;font-family:&amp;color:#a31515;">endpointBehaviors</span><span style="font-size:8pt;font-family:&amp;color:blue;">&gt;</span></p>
+<p class="MsoNormal">Backend service is standard WCF service – doing callbacks using the usual ChannelFactory stuff. The important bit (highlighted) is the explicit context management.</p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">public</span><span style="font-size:8pt;font-family:&amp;"> <span style="color:blue;">void</span> Dowork(<span style="color:#2b91af;">Guid</span> instanceId)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">{</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Doing long running work..."</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">for</span> (<span style="color:blue;">int</span> i = 0; i &lt; 10; i++)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        <span style="color:#2b91af;">Console</span>.Write(<span style="color:#a31515;">"..."</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        <span style="color:#2b91af;">Thread</span>.Sleep(1000);</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:#2b91af;">Console</span>.WriteLine();</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">   </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">try</span></span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Sending response..."</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        SendResults(instanceId, <span style="color:#2b91af;">OperationContext</span>.Current.IncomingMessageHeaders.ReplyTo);</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">catch</span> (<span style="color:#2b91af;">Exception</span> exp)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Failed: "</span> + exp.ToString());</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">}</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;color:blue;">private</span><span style="font-size:8pt;font-family:&amp;"> <span style="color:blue;">void</span> SendResults(<span style="color:#2b91af;">Guid</span> instanceId, <span style="color:#2b91af;">EndpointAddress</span> remoteAddress)</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">{</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">var</span> binding = <span style="color:blue;">new</span> <span style="color:#2b91af;">BasicHttpContextBinding</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">var</span> cf = <span style="color:blue;">new</span> <span style="color:#2b91af;">ChannelFactory</span>&lt;<span style="color:#2b91af;">IBackendCallback</span>&gt;(binding, remoteAddress);</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">var</span> proxy = cf.CreateChannel();</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;">var</span> cc = proxy <span style="color:blue;">as</span> <span style="color:#2b91af;">IContextChannel</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    <span style="color:blue;background:yellow;">using</span><span style="background:yellow;"> (<span style="color:blue;">new</span> <span style="color:#2b91af;">OperationContextScope</span>(cc))</span></span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">        <span style="color:blue;">var</span> cmp = <span style="color:blue;">new</span> <span style="color:#2b91af;">ContextMessageProperty</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">        <span style="color:blue;">var</span> cm = cc.GetProperty&lt;<span style="color:#2b91af;">IContextManager</span>&gt;();</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">        cm.Enabled = <span style="color:blue;">false</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">        cmp.Context[<span style="color:#a31515;">"instanceId"</span>] = instanceId.ToString();</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">        </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;background:yellow;">        <span style="color:#2b91af;">OperationContext</span>.Current.OutgoingMessageProperties.Add(<span style="color:#2b91af;">ContextMessageProperty</span>.Name, cmp);</span><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;"> </span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">        proxy.LongRunningOperationCompleted(<span style="color:blue;">new</span> <span style="color:#2b91af;">OperationOutput</span> { Id = 22, Status = <span style="color:#a31515;">"Done.."</span> });</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;font-family:&amp;">}</span></p>
+<p class="MsoNormal">In Dowork, I’m passing instanceId as method’s signature however you can easily pass this data as part of context header (remmeber context header is property bag -- IDictionary&lt;string,string&gt;)</p>
+<p class="MsoNormal">In the SendResults – I’m creating approparite context header – so that WorflowServiceHost can connect this callback to the correct instance &amp; correct activity inside that instance. WorkflowServiceHost will also load the workflow if it got persisted.</p>
+<p class="MsoNormal">I’m attaching complete solution with this. In next post, I will talk about durable messaging enhancements added in .Net 4.0 Beta 1.</p>
+<p class="MsoNormal">Stay tuned...</p>
+<p class="MsoNormal"><span style="color:#1f497d;"> </span></p>
+</div>
+<p>Download: <a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/DurableMessaging.zip">DurableMessaging.zip</a></p>

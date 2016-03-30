@@ -1,0 +1,34 @@
+---
+layout: post
+title: X509 based proof keys with wsFederationHttpBinding
+date: 2010-05-14 22:57:08.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Security
+- WCF
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>When requesting a SAML token from an STS you can also request a proof token, which you can use to proof your ownership (by signing the primary signature with the proof token) of the token to the relying party when sending a SOAP message to it. In Identity terms, this is known as <strong>Holder-Of-Key</strong> subject confirmation method.</p>
+<p>When using Holder-Of-Key confirmation method, there are three options for proof token:</p>
+<ol>
+<li>Symmetric key (based proof tokens)</li>
+<li>Asymmetric key</li>
+<li>Bearer key</li>
+</ol>
+<p>See <a href="http://blogs.msdn.com/vbertocci/archive/2008/01/02/on-prooftokens.aspx">this post</a> from Vittorio on the details of proof token.</p>
+<p>Asymmetric key based proof tokens can come in following two forms:</p>
+<ol>
+<li>Requestor can generate an ephemeral RSA key pair and submit the public key to the IP/STS as part of the RST request. Requestor then signs the RST request with its private key to demonstrate the knowledge of the private key.</li>
+<li>Requestor can use an existing X509 public key cert as the proof token and use the corresponding private key cert to create the supporting signature. </li>
+</ol>
+<p>wsFederationHttpBinding out of box (as in .NET 4.0) only supports an ephemeral RSA key pair while certain interop scenarios require X509 based asymmetric proof keys. For example, Apache Rampart 1.4 doesn’t seem to like ephemeral RSA key pair and forces you to use X509 based asymmetric proof keys. Unfortunately today this scenario is not possible <i>out of box</i> with wsFederationHttBinding. WSTrustChannelFactory API in WIF however supports both RSA key pair &amp; X509 certs and you can choose your desired key type when requesting a token <i>but</i> WIF is not supported on XP. </p>
+<p>So If you are on Windows XP or can’t use WIF for some other reason, you would have to extend wsFederationHttpBinding to enable X509 based proof keys. Probably a custom endpoint behaviour and inside it you would have to tweak IssuedSecurityTokenProvider to force it to use X509 key. See <a href="http://zamd.net/2008/07/11/saml-token-requestor/">this post</a> on how to work with IssuedSecurityTokenProvider directly. In the next post, I will talk more about extending wsFederationHttpBinding to support X509 based proof keys.</p>

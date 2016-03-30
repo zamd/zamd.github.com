@@ -1,0 +1,36 @@
+---
+layout: post
+title: WCF Certificates in Compute Emulator
+date: 2010-12-21 00:08:23.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Windows Azure
+tags: []
+meta:
+  _oembed_2350db64238f8cdb819b4e2d02dc5560: '{{unknown}}'
+  _oembed_d4dd1c622dc3f35767263227090812b7: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Windows Azure SDK 1.3 introduced significant changes to the local development environment. The old DevFabric is broken down into “Compute emulator” &amp; “Storage emulator” which are the local emulated environments for the compute and storage respectively.</p>
+<p>Azure SDK 1.3 uses the ‘full IIS’ feature for the WebRole running in the compute emulator which makes it much easier to configure and debug applications in the emulator. For example, when you run your azure project (containing a WebRole) in the Compute emulator it transparently creates web sites and application pools in IIS and configures them correctly by pointing to the physical application directory. Your WebRole code executes inside the good-old worker process (w3wp.exe) and can be configured using the appPool properties plus you can directly edit the web.config to change application settings.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/12/image.png"><img style="border-bottom:0;border-left:0;display:inline;border-top:0;border-right:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="244" height="66" /></a> <a href="http://zuahmed.files.wordpress.com/2010/12/image1.png"><img style="border-bottom:0;border-left:0;display:inline;border-top:0;border-right:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb1.png" width="244" height="72" /></a> </p>
+<p>You can configure HTTPs endpoints for you application and the emulator automatically setup SSL bindings using a test certificate. These bindings can be viewed using the netsh.exe utility.<a href="http://zuahmed.files.wordpress.com/2010/12/image2.png"><img style="border-bottom:0;border-left:0;display:inline;border-top:0;border-right:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb2.png" width="244" height="150" /></a> </p>
+<p>If your WebRole however requires additional certificates then you have to manually deploy those. For example, WCF message security would require a service certificate which needs to be referenced in the web.config.&#160; </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:416124a2-5f5b-44d0-8fd2-645db4c4c872" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#fff;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceCredentials</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceCertificate</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">findValue</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">bc2b61b66fda75dbaae50ae2757ad756cfeff016</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">x509FindType</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">FindByThumbprint</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">storeLocation</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">LocalMachine</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">storeName</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">My</span>&quot;<span style="color:#0000ff;"> /&gt;</span></li>
+<li><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceCredentials</span><span style="color:#0000ff;">&gt;</span></li>
+</ol></div>
+</p></div>
+</p></div>
+<p>The AppPool created by the Compute emulator is configured to run under ‘Network Service’ account so additional certificate needs to be copied in the local machine store (inside personal folder) and ‘Network Service’ account needs to have read permissions to the private keys.</p>

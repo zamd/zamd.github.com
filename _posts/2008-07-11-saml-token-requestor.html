@@ -1,0 +1,90 @@
+---
+layout: post
+title: SAML Token Requestor
+date: 2008-07-11 14:19:13.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- Federation/STS
+- Geneva
+tags: []
+meta:
+  _oembed_19a1fdc71f973df0fb412ec944769190: '{{unknown}}'
+  _oembed_e250bb72759cb110d0a556d1ca7480f6: '{{unknown}}'
+  _oembed_69f4782d46306e21eeb5bf4468068006: '{{unknown}}'
+  _oembed_1ecc04996bf62dce6f19a6e4d13ad94c: '{{unknown}}'
+  _oembed_5d102b90f98217e1159465885a8a19c5: '{{unknown}}'
+  _oembed_603a2844d841e62d10fdf5340638745e: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">In yesterdays <a href="http://www.zamd.net/2008/07/10/CreatingABasicSTSUsingZermatt.aspx">post</a> I have shown you how to create a basic STS using Zermatt. You can use this STS by configuring your clients to use <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.wsfederationhttpbinding.aspx">WSFederationHttpBinding</a> however in that case you will never see the token issued by STS. In this post I will show you a direct way to communicate with your STS by using the <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.security.tokens.issuedsecuritytokenprovider.aspx">IssuedSecurityTokenProvider</a> – This is useful for quick testing scenarios or when you need access to the issued token.</p>
+<p class="MsoNormal">TokenProviders are the WCF components which provide the tokens used in message security. There is usually a TokenProvider for each type of security token (Certficate, UserName, Kerberos, IssuedToken etc). IssuedSecurityTokenProvider internally uses a ChannelFactory to communicate with the STS to get the actual token. You can configure this ChannelFactory by adding your custom behaviors to the <span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">IssuerChannelBehaviors</span> property of the <span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">IssuedSecurityTokenProvider</span>. Here is the code sample.</p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">public</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main()</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">//This provider internally creates a WCF proxy (ChannelFactory) and uses it to issues RST request.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">IssuedSecurityTokenProvider</span> provider = <span style="color:blue;">new</span> <span style="color:#2b91af;">IssuedSecurityTokenProvider</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.SecurityTokenSerializer = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSSecurityTokenSerializer</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.TargetAddress = <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:#a31515;">"http://localhost/IService"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.IssuerAddress = <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:#a31515;">"http://localhost:9000/STS"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> be = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSFederationHttpBinding</span>().CreateBindingElements().Find&lt;<span style="color:#2b91af;">SecurityBindingElement</span>&gt;();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">// use the default algo &amp; security versions used by Federation binding.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.SecurityAlgorithmSuite = be.DefaultAlgorithmSuite;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.MessageSecurityVersion = be.MessageSecurityVersion;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">// Binding used to communicate with STS.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.IssuerBinding = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSHttpBinding</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">// opent the internal channelfactory.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.Open();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">// request token by issuing a WS-Trust RST request.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> issuedToken = provider.GetToken(<span style="color:#2b91af;">TimeSpan</span>.FromMinutes(1));</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">// print token on the console.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">WSSecurityTokenSerializer</span> serializer = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSSecurityTokenSerializer</span>(be.MessageSecurityVersion.SecurityVersion);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> writer = <span style="color:#2b91af;">XmlWriter</span>.Create(<span style="color:#2b91af;">Console</span>.OpenStandardOutput());</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; serializer.WriteToken(writer, issuedToken);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; writer.Flush();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; provider.Close();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}<span style="color:#2b91af;"></span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal">My STS requires Kerberos token to issue a SAML token – so this provider simply uses the kerberos token of the process. If you need to send different token (UserName etc) then you can do that using the IsserChannelBehaviors propery mentioned ealier.</p>
+<p class="MsoNormal" style="text-indent:.5in;"><span style="font-size:10pt;font-family:'Courier New';">provider.IssuerChannelBehaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">IssuerCredBehavior</span>());</span></p>
+<p class="MsoNormal">And custom behavior looks like this.</p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">public</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:blue;">class</span> <span style="color:#2b91af;">IssuerCredBehavior</span> : <span style="color:#2b91af;">IEndpointBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; #region</span><span style="font-size:10pt;font-family:'Courier New';"> IEndpointBehavior Members</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> AddBindingParameters(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">BindingParameterCollection</span> bindingParameters)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> cc = bindingParameters.Find&lt;<span style="color:#2b91af;">ClientCredentials</span>&gt;();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (cc == <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cc = <span style="color:blue;">new</span> <span style="color:#2b91af;">ClientCredentials</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cc.ServiceCertificate.Authentication.CertificateValidationMode = <span style="color:#2b91af;">X509CertificateValidationMode</span>.None;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cc.ServiceCertificate.SetDefaultCertificate(<span style="color:#a31515;">"CN=localhost"</span>, <span style="color:#2b91af;">StoreLocation</span>.LocalMachine, <span style="color:#2b91af;">StoreName</span>.My);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:green;">//Use this client certificate&nbsp;to get a SAML token.</span></span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cc.ClientCertificate.Certificate = <span style="color:#2b91af;">CertificateUtil</span>.GetCertificate(<span style="color:#2b91af;">StoreName</span>.My, <span style="color:#2b91af;">StoreLocation</span>.CurrentUser, <span style="color:#a31515;">"cn=localhost"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bindingParameters.Add(cc);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">ClientRuntime</span> clientRuntime)&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">EndpointDispatcher</span> endpointDispatcher)&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint)&nbsp;&nbsp;&nbsp; { &nbsp;&nbsp;&nbsp;}</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; #endregion</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}</span><span style="font-size:8.5pt;color:black;font-family:Verdana,sans-serif;"></span></p>
+</div>

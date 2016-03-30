@@ -1,0 +1,123 @@
+---
+layout: post
+title: Error handling with WebHttpBinding for Ajax/JSON
+date: 2008-07-08 14:18:22.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- Ajax
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_c3c08b12bdc0a7e9e3d4a30f9087e3e1: '{{unknown}}'
+  _oembed_457c661f1ade2f74f3328f9372810783: '{{unknown}}'
+  _oembed_e59d1fb13c1b86f38937792f58056c8c: '{{unknown}}'
+  _oembed_5b54dedcea3427ed969dbb583aa21b4b: '{{unknown}}'
+  _oembed_b568680c871b4f4215c13f0ad086ae0f: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">WebHttpBinding is the non-SOAP binding shipped with .net Framework 3.5. This binding along with WebHttpBehavior will be your friend for REST, POX &amp; AJAX scenarios.</p>
+<p class="MsoNormal">When you expose an endpoint using WebHttpBinding the default error handling mechanism is overridden by a custom error handler added by the WebHttpBehavior. Now if you throw a FaultException from your methods – this handler will simply swallow your exception and will generate a generic 400 Bad Request error message. It will do the same for non-fault exceptions. The reason for this change is that in the SOAP world, Faults have a well known wire representation and based on that your FaultException is translated into a SOAP fault message. There is no such wire representation for the faults in REST or AJAX scenarios. If you own both sides (client &amp; service) of the solution, you might want to customize this default WCF behavior. For example, in my scenario I want to send fault object as a JSON string to the client with a 400, “Bad request” http error code. For non-fault exception I will return a generic message with 500 “Internal Server Error”.&nbsp; </p>
+<p class="MsoNormal">First step of this customization is to subclass the WebHttpBehavior and replace the default error handler with you own error handler.</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">public</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">WebHttpBehaviorEx</span> : <span style="color:#2b91af;">WebHttpBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">void</span> AddServerErrorHandlers(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">EndpointDispatcher</span> endpointDispatcher)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// clear default erro handlers.</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; endpointDispatcher.ChannelDispatcher.ErrorHandlers.Clear();</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// add our own error handler.</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; endpointDispatcher.ChannelDispatcher.ErrorHandlers.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">ErrorHandlerEx</span>());</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p class="MsoNormal">Create your own error handler by impelemting IErrorHandler interface.</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">public</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">ErrorHandlerEx</span> : <span style="color:#2b91af;">IErrorHandler</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">bool</span> HandleError(<span style="color:#2b91af;">Exception</span> error)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ProvideFault(</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">Exception</span> error, <span style="color:#2b91af;">MessageVersion</span> version, <span style="color:blue;">ref</span> <span style="color:#2b91af;">Message</span> fault)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">//TODO: here we can provide our own fault </span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p class="MsoNormal">ProvideFault implementation looks like this:</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ProvideFault(</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">Exception</span> error, <span style="color:#2b91af;">MessageVersion</span> version, <span style="color:blue;">ref</span> <span style="color:#2b91af;">Message</span> fault)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (error <span style="color:blue;">is</span> <span style="color:#2b91af;">FaultException</span>)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// extract the our FaultContract object from the exception object.</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> detail = error.GetType().GetProperty(<span style="color:#a31515;">"Detail"</span>).GetGetMethod().Invoke(error, <span style="color:blue;">null</span>);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// create a fault message containing our FaultContract object</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault = <span style="color:#2b91af;">Message</span>.CreateMessage(version, <span style="color:#a31515;">""</span>, detail, <span style="color:blue;">new</span> <span style="color:#2b91af;">DataContractJsonSerializer</span>(detail.GetType()));</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// tell WCF to use JSON encoding rather than default XML</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<span style="color:blue;">var</span> wbf = <span style="color:blue;">new</span> <span style="color:#2b91af;">WebBodyFormatMessageProperty</span>(<span style="color:#2b91af;">WebContentFormat</span>.Json);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault.Properties.Add(<span style="color:#2b91af;">WebBodyFormatMessageProperty</span>.Name, wbf);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// return custom error code.</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> rmp = <span style="color:blue;">new</span> <span style="color:#2b91af;">HttpResponseMessageProperty</span>();</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.StatusCode = System.Net.<span style="color:#2b91af;">HttpStatusCode</span>.BadRequest;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// put appropraite description here..</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.StatusDescription = <span style="color:#a31515;">"See fault object for more information."</span>;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault.Properties.Add(<span style="color:#2b91af;">HttpResponseMessageProperty</span>.Name, rmp);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">else</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault = <span style="color:#2b91af;">Message</span>.CreateMessage(version, <span style="color:#a31515;">""</span>, <span style="color:#a31515;">"An non-fault exception is occured."</span>, <span style="color:blue;">new</span> <span style="color:#2b91af;">DataContractJsonSerializer</span>(<span style="color:blue;">typeof</span>(<span style="color:blue;">string</span>)));</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> wbf = <span style="color:blue;">new</span> <span style="color:#2b91af;">WebBodyFormatMessageProperty</span>(<span style="color:#2b91af;">WebContentFormat</span>.Json);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault.Properties.Add(<span style="color:#2b91af;">WebBodyFormatMessageProperty</span>.Name, wbf);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// return custom error code.</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> rmp = <span style="color:blue;">new</span> <span style="color:#2b91af;">HttpResponseMessageProperty</span>();</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.StatusCode = System.Net.<span style="color:#2b91af;">HttpStatusCode</span>.InternalServerError;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green;">// put appropraite description here..</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.StatusDescription = <span style="color:#a31515;">"Uknown exception..."</span>;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault.Properties.Add(<span style="color:#2b91af;">HttpResponseMessageProperty</span>.Name, rmp);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p class="MsoNormal">Now if you throw a FaulException with following fault contract.<span style="font-family:'Courier New';font-size:10pt;"></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; [<span style="color:#2b91af;">DataContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">GreaterThan3Fault</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2b91af;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> FaultMessage { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2b91af;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">int</span> ErrorCode { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2b91af;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> Location { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal">You will get this on the client side with a 400 error code. You can use the <span style="color:#17365d;">javascript:eval()</span> to convert this string into javascript object.</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';background:yellow;font-size:10pt;">{"ErrorCode":90192,"FaultMessage":"Count cannot be greate than 3. Please try again later.","Location":"ISB"}</span><span style="font-family:'Courier New';font-size:10pt;"></span></p>
+<p class="MsoNormal">You can plug-in your custom/extended behavior by using a custom ServiceHostFactory.</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">MyFactory</span> : <span style="color:#2b91af;">WebServiceHostFactory</span></span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ServiceHostBase</span> CreateServiceHost(<span style="color:blue;">string</span> constructorString, <span style="color:#2b91af;">Uri</span>[] baseAddresses)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> sh = <span style="color:blue;">new</span> <span style="color:#2b91af;">ServiceHost</span>(<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">Service1</span>), baseAddresses);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sh.Description.Endpoints[0].Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">WebHttpBehaviorEx</span>());</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> sh;</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ServiceHost</span> CreateServiceHost(<span style="color:#2b91af;">Type</span> serviceType, <span style="color:#2b91af;">Uri</span>[] baseAddresses)</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">base</span>.CreateServiceHost(serviceType, baseAddresses);</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal">And your svc should look like this.</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&lt;</span><span style="font-family:'Courier New';font-size:10pt;">%<span style="color:#a31515;">@</span><span style="color:blue;"> </span><span style="color:red;">ServiceHost</span><span style="color:blue;"> </span><span style="color:red;">Language</span><span style="color:blue;">=</span>"<span style="color:blue;">C#</span>"<span style="color:blue;"> </span><span style="color:red;">Debug</span><span style="color:blue;">=</span>"<span style="color:blue;">true</span>"<span style="color:blue;"> </span><span style="color:red;">Service</span><span style="color:blue;">=</span>"<span style="color:blue;">Test.Service1</span>"<span style="color:blue;"> </span><span style="color:red;">CodeBehind</span><span style="color:blue;">=</span>"<span style="color:blue;">Service1.svc.cs</span>"<span style="color:blue;"> </span><span style="background:yellow;color:red;">Factory</span><span style="background:yellow;color:blue;">=</span><span style="background:yellow;">"<span style="color:blue;">Test.MyFactory</span>"</span><span style="color:blue;"> </span>%<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal">I have attached complete solution with this post.</p>
+<p class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;"></span></p>
+</div>
+<p><font color="#000000"><em>Update: Please note this&nbsp;sample will NOT work with&nbsp;Microsoft Ajax library as it is. See</em></font> <a href="http://zamd.net/2009/04/02/error-handling-with-webhttpbinding-and-microsoft-ajax/">this post</a> <em>if you are using Microsoft Ajax library as your client.</em></p>
+<p>Download: <a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/jsonSerial.zip">jsonSerial.zip</a></p>

@@ -1,0 +1,57 @@
+---
+layout: post
+title: Flowing Forms Authentication Cookie to WCF
+date: 2009-03-05 22:49:55.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Security
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_65546e99568ea136f5d7c3007a22d15b: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><a href="http://msdn.microsoft.com/en-us/library/bb384297.aspx">Client Application Services</a> enables the use of Authentication and other ASP.net services outside of ASP.net applications. Here I will show how you can configure WCF to flow Forms authentication cookie (acquired after successful authentication) to a WCF service (running in ASP.net compatibility mode).</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">static</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:green;">//Authenticate using membership API.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> valid = <span style="color:#2B91AF;">Membership</span>.ValidateUser(<span style="color:#A31515;">&quot;Zul&quot;</span>, <span style="color:#A31515;">&quot;G!&quot;</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> identity = <span style="color:#2B91AF;">Thread</span>.CurrentPrincipal.Identity <span style="color:blue;">as</span> <span style="color:#2B91AF;">ClientFormsIdentity</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; ServiceReference1.<span style="color:#2B91AF;">Service1Client</span> sc = <span style="color:blue;">new</span> FormsAuClient.ServiceReference1.<span style="color:#2B91AF;">Service1Client</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">using</span> (<span style="color:blue;">var</span> ocs = <span style="color:blue;">new</span> <span style="color:#2B91AF;">OperationContextScope</span>(sc.InnerChannel <span style="color:blue;">as</span> <span style="color:#2B91AF;">IContextChannel</span>))</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> ch = identity.AuthenticationCookies.GetCookieHeader(sc.Endpoint.ListenUri);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">HttpRequestMessageProperty</span> rmp = <span style="color:blue;">new</span> <span style="color:#2B91AF;">HttpRequestMessageProperty</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.Headers[<span style="color:#2B91AF;">HttpRequestHeader</span>.Cookie] = ch;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// enable cookie flow for WCF Http Transport Channel.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> col = sc.Endpoint.Binding.CreateBindingElements();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> transport = col.Find&lt;<span style="color:#2B91AF;">HttpTransportBindingElement</span>&gt;();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; transport.AllowCookies = <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sc.Endpoint.Binding = <span style="color:blue;">new</span> <span style="color:#2B91AF;">CustomBinding</span>(col);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// Add Forms Authentication Cookie to outgoing message.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">OperationContext</span>.Current.OutgoingMessageProperties.Add(<span style="color:#2B91AF;">HttpRequestMessageProperty</span>.Name, rmp);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sc.GetData(32);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal">On the server side, WCF service is running under ASP.net compatibality mode along with Forms Authentication configured in web.config</p>
+<p class="MsoNormal">Note, for this configuration to work &#8211; both apps (sharing the cookie) MUST use the same/explicit machine key.</p>
+<p class="MsoNormal">PS: There is a general misunderstanding that WCF doesn&#8217;t allow control over HTTP headers/body which lead <a href="http://www.codeproject.com/KB/office/VS2008MessageBoard2.aspx">few people think</a> that this is not possible in WCF.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">&nbsp;</p>
+</p></div>

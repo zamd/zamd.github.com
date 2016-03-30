@@ -1,0 +1,48 @@
+---
+layout: post
+title: Deploying Umbraco to Windows Azure
+date: 2012-01-27 21:41:03.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Windows Azure
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p><a href="http://umbraco.com/">Umbraco</a> is a fairly mature CMS system and recently I was engaged in an assignment to deploy Umbraco CMS to Windows Azure. In this post, I’ll share some of my learning’s.</p>
+<ul>
+<li>Umbraco accelerator (I call it bootstrapper) works well for small to medium web sites but you definitely have to increase the default blob sync interval which by default is set to 1 second.</li>
+<li>In the context of Windows Azure, accelerator/bootstrapper become your main application which gets deployed to Azure Web Roles using Azure service model.</li>
+<li>Umbraco installation (I used standard Umbraco download) is stored in blob storage while accelerator is configured to pick this and install it on the web roles where accelerator itself is running. Accelerator does both push &amp; pull so file system changes done by Umbraco would be pushed to blob storage and automatically be synced to other web roles by the accelerator.</li>
+<li>The standard Azure staging/production deployment doesn’t really fit with accelerator style deployment used by Umbraco. So instead of using staging &amp; production, we used azure production environment only(with well known DNS) and decided to use two hosted services representing UAT &amp; Live environments. Our plan is to use end to end separation i.e. separate blob storage &amp; separate SQL Azure databases. This setup would give us required change management &amp; content management control.</li>
+<li>Using accelerator I was quickly able to deploy Umbraco web app to two Azure web roles.</li>
+<li>Soon after the deployment I was welcomed by ASP.net yellow screen of death.</li>
+<li>I RDP into the server and debugged the W3P.exe to realize ASP.net was failing to validate ViewState.  Make sense! :) Azure is load-balanced &amp; requests were sent to two web role instances in a round robin scheme. ASP.net machine key scheme was set to default <strong>Autogenerate </strong>which resulted in both web roles using different keys to secure/validate ViewState. Once we knew the issue the fix was simple:</li>
+<li><strong>Use pre-generated fixed key values for &lt;machineKey&gt;</strong></li>
+</ul>
+<pre class="csharpcode"><span class="kwrd">&lt;</span><span class="html">machineKey</span> <span class="attr">validationKey</span><span class="kwrd">="21F090935F6E49C2C797F69BBAAD8402ABD2EE0B667A8B44EA7DD4374267A75D7"</span>
+            <span class="attr">decryptionKey</span><span class="kwrd">="ABAA84D7EC4BB56D75D217CECFFB9628809BDB8BF91CFCD64568A145BE59719F"</span>
+            <span class="attr">validation</span><span class="kwrd">="SHA1"</span>
+            <span class="attr">decryption</span><span class="kwrd">="AES"</span><span class="kwrd">/&gt;</span></pre>
+<ul>
+<li>Next step was to create the Umbraco database for which we decided to use SQL Azure as the DB platform.</li>
+<li>My first thoughts were to use the basic approach of manually creating a blank DB in Sql Azure and then run Umbraco configuration wizard to populate the schema &amp; data. Even though this approach won’t give us necessary control for the DB assets it was simple to use.</li>
+<li>Turns out this approach doesn’t work &amp; Umbraco simply hangs. I debugged &amp; found Umbraco configuration wizard was unable to create couple of columns (of bit data type) &amp; data access was failing because of the missing columns. I discarded this approach without going any further.</li>
+<li>I then installed a local Umbraco instance and configured a local Sql Server database which worked smoothly.</li>
+<li>I used <a href="http://msdn.microsoft.com/en-us/library/ff381683(SQL.100).aspx">data tier application framework</a> to export local SQL Server database as a package. As SQL Azure natively supports import of dacpac packages, the import was fairly simple process using the Sql Azure management portal.</li>
+<li>The dacpac approach also solved the lack of control issues with the simple in-place DB creation option as it gave us a golden copy of the database for future use. We are also planning to use dacpac feature as the basis for backup &amp; restore requirements.</li>
+<li>Once DB is ready in SQL Azure,  Umbraco was configured to use this DB and we have a somewhat working Umbraco installation.</li>
+<li>During testing, I quickly realized that by default Umbraco stores session state in memory and this would not work in Window Azure load balanced environment.</li>
+<li>I could use SQL Azure for session state storage but it’s <a href="http://blogs.msdn.com/b/sqlazure/archive/2010/08/04/10046103.aspx">NOT supported</a> in SQL Azure and also adds quite a bit of overhead in terms of session state clean up as there is no SQL Agent in Azure.</li>
+<li>I decided to use Windows Azure Cache (a.k.a AppFabric cache) as the session state storage mechanism. It’s fast &amp; also doesn’t require additional data purge solutions. I created a 128MB cache and configured Umbaco web app to use AppFabric cache (instead of local machine’s memory) as the session state storage.</li>
+<li>And finally Umbraco is up &amp; running in Azure :)</li>
+</ul>
+<p>Enjoy…</p>

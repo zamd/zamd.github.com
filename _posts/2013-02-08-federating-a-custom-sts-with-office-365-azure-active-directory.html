@@ -1,0 +1,49 @@
+---
+layout: post
+title: Federating Office 365 (Azure Active Directory) with a Custom STS
+date: 2013-02-08 16:07:32.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Azure AD
+- Office 365
+- SSO
+tags: []
+meta:
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+  _edit_last: '13661190'
+  _oembed_fd048bc83d63903f4ab8d866ff315f3f: '{{unknown}}'
+  _oembed_5063d02133c48e3a29b08e0ab1dfb358: '{{unknown}}'
+  _oembed_5f3276f9a21a6edb3166cede581d6053: '{{unknown}}'
+  _oembed_f40a27014f014771a21f7ba69b9ff2ed: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Let’s start of with a clarification: <strong>As of today, federating Office 365 (Azure AD) with a Custom STS is NOT supported by Microsoft.&#160; </strong>Today the only supported STSs are AD FS 2.0, Shibboleth 2, Optimal IDM Federation Services and PingFederate 6.10. </p>
+<p>With that cleared, Office 365 STS supports both WS-Federation &amp; SAML protocols for user authentication which means technically any compatible STS can be used as the Identity Provider STS for Office 365 services or other Relying Parties with a trust relationship with Azure Active Directory. </p>
+<p>Azure AD supports In-cloud &amp; Federated Identities.</p>
+<p>With In-Cloud identities all user information, including the passwords, are stored in the online directory.</p>
+<p>With Federating identities, only basic information is stored in online directory (as shadow accounts) and user identities are mastered in on-premise directories. Passwords are never copied to online directory and Azure AD relies on federation for user sign in. </p>
+<p>A key prerequisite for Office 365 SSO is to create federated identities (shadow accounts) in Azure AD and there are different options/tools to do this. </p>
+<ol>
+<li>DirSync is the recommended tool but it only supports Active Directory as the identity source. DirSync &amp; AD FS 2.0 are the primary tools to enable federation between an on-premises AD and Azure AD.</li>
+<li>Graph API is a new RESTful API to manage online directory and looks very promising for creating cloud-only identities. Graph API today doesn’t support creating Federated identities. </li>
+<li>MSOL PowerShell cmdlets: These cmdlets use the SOAP based Provisioning Service and are functionally quite rich. They support most of the operations including the creation of federated identities. I have used these cmdlet for my scenairo. Few commerical tools also wrap these cmdlets to perform various Office 365 provisioning operations. </li>
+<li>Forfront Identity Manager (FIM) is another potential option which can create Federated accounts from source directories other than AD but I haven’t explored that in detail. </li>
+</ol>
+<p>Now once you have the federated identities provisioned (or synced from your on-premises user identity store) in Azure AD, the next step is to establish a trust relationship between Azure AD and your custom STS. This is assuming you have already done the domain verification etc.</p>
+<p>I have used Set-MsolDomainAuthentication cmdlet for this. </p>
+<p>Set-MsolDomainAuthentication –DomainName bccoss.com –federationBrandName bccoss.com -Authentication Federated&#160; -PassiveLogOnUri $url -SigningCertificate $certData -IssuerUri $uri -ActiveLogOnUri $ecpUrl -LogOffUri $logoutUrl -PreferredAuthenticationProtocol WSFed</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/02/image3.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb3.png" width="210" height="244" /></a>&#160;</p>
+<p>At this stage, if I browse to the Microsoft Online Services portal (<a href="http://portal.microsoftonline.com/">http://portal.microsoftonline.com/</a>) and choose to login using my federated domain (@bccoss.com) – I got redirected to my custom STS. </p>
+<p>In this case, I’m using Thinktecture STS but that doesn’t work out of box with Office 365 / Azure AD so I have to modify the STS to make it compatible with Azure AD. I’ll explain the Office 365 compatibility requirements of an STS in a future post. </p>
+<p>I’ll also try to contribute my Thinktecture modification to code back to git at some point. </p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/02/image4.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb4.png" width="244" height="188" /></a> <a href="http://zuahmed.files.wordpress.com/2013/02/image5.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb5.png" width="244" height="188" /></a> </p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/02/image6.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb6.png" width="244" height="188" /></a> <a href="http://zuahmed.files.wordpress.com/2013/02/image7.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb7.png" width="244" height="188" /></a> </p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/02/image8.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb8.png" width="244" height="188" /></a> <a href="http://zuahmed.files.wordpress.com/2013/02/image9.png"><img title="image" style="border-top:0;border-right:0;border-bottom:0;border-left:0;display:inline;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb9.png" width="244" height="188" /></a></p>

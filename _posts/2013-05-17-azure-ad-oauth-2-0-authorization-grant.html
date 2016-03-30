@@ -1,0 +1,122 @@
+---
+layout: post
+title: Azure AD OAuth 2.0 Authorization Grant
+date: 2013-05-17 23:08:55.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Azure AD
+- OAuth 2.0
+tags: []
+meta:
+  _edit_last: '13661190'
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+  _wpas_skip_1982054: '1'
+  _oembed_678f5dd5fdad285df1e83d3adc232932: '{{unknown}}'
+  _oembed_b25ab5b4d799b9f37f2501d806f01d09: '{{unknown}}'
+  _oembed_032eb94ce83293152ce5872628f24552: '{{unknown}}'
+  _oembed_aa292357f3cfb8fe62178c0d3a0590ce: '{{unknown}}'
+  _oembed_67c40c9968ac54c544efbcb506f1462c: '{{unknown}}'
+  _oembed_a088cfc7c5618bf12485e784e81460b7: '{{unknown}}'
+  _oembed_8a6c75b48e8f93494cf5cf0d26f58a4a: '{{unknown}}'
+  _oembed_7c6ea7bc1cb4c2d4daa4a2763b8a1f71: '{{unknown}}'
+  _oembed_f89c774e9f885c2ed8ad988d655c8536: '{{unknown}}'
+  _oembed_c47f4e28eae1b917b454a0b23ae05b59: '{{unknown}}'
+  _oembed_0f892ecf193a045c395639beb52cb097: '{{unknown}}'
+  _oembed_2cd6e547d48d920e158d6afb3c979f8f: '{{unknown}}'
+  _oembed_f167c022e4e1444862d9f52cdee4b8ad: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Yesterday I talked about a bug which prevented me to complete the authorization grant flow with Azure AD. It turn out the bug is only exposed when using Azure Management Portal for Relying party registration. In this post, I’ll use <a href="https://graphexplorer.cloudapp.net/">Graph Explorer</a> to do the registration which works fine.</p>
+<p>My scenario is to create a simple MVC application which would do the user authentication against the Azure AD.</p>
+<p>Once the user is signed in, the web app then acquires an “access” &amp; “refresh token” for the Graph API (I’ll work with other resources in future) using the 3-leg authorization grant flow.</p>
+<p>I started by creating an empty MVC 4.0 application and added a home controller with a simple view displaying the identity &amp; claims of the authenticated user.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/05/image1.png"><img style="display:inline;border:0;" title="image" alt="image" src="{{ site.baseurl }}/assets/image_thumb1.png" width="244" height="78" border="0" /></a></p>
+<p>Running the app gave me the url which I would use to register my app with Azure AD using Graph Explorer.  Registration instruction are available in <a href="http://blogs.msdn.com/b/aadgraphteam/archive/2013/05/17/using-oauth-2-0-authorization-code-grant-for-delegated-access-of-directory-via-aad-graph.aspx">this blog post</a> under the ‘Setting up permissions’ section. My registration settings looks like this</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/05/image2.png"><img style="display:inline;border:0;" title="image" alt="image" src="{{ site.baseurl }}/assets/image_thumb2.png" width="244" height="86" border="0" /></a></p>
+<p>Now back to VS and using the “Identity &amp; Access”, I have externalized the authentication of my app to windows azure AD.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/05/image3.png"><img style="display:inline;border:0;" title="image" alt="image" src="{{ site.baseurl }}/assets/image_thumb3.png" width="244" height="222" border="0" /></a></p>
+<p>The tooling does all the magic and generates required WIF configuration.</p>
+<div class="wlWriterEditableSmartContent" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:4a7f640f-54bc-4b9a-81da-42310189d706" style="float:none;margin:0;display:inline;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;padding:2px 5px;white-space:nowrap;"><span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">system.identityModel</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">identityConfiguration</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">audienceUris</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">add</span><span style="background:#ffffff;color:#ff0000;">value</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">http://localhost:45906/</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;"> /&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">audienceUris</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">issuerNameRegistry</span><span style="background:#ffffff;color:#ff0000;">type</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">System.IdentityModel.Tokens.ConfigurationBasedIssuerNameRegistry, System.IdentityModel, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">trustedIssuers</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">add</span><span style="background:#ffffff;color:#ff0000;">thumbprint</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">3464C5BDD2BE7F2B6112E2F08E9C0024E33D9FE0</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#ff0000;">name</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">https://sts.windows.net/{tenantid}/</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;"> /&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">trustedIssuers</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">issuerNameRegistry</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">certificateValidation</span><span style="background:#ffffff;color:#ff0000;">certificateValidationMode</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">None</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">/&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">identityConfiguration</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">system.identityModel</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">system.identityModel.services</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">federationConfiguration</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">cookieHandler</span><span style="background:#ffffff;color:#ff0000;">requireSsl</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">false</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;"> /&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;</span><span style="background:#ffffff;color:#a31515;">wsFederation</span><span style="background:#ffffff;color:#ff0000;">passiveRedirectEnabled</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">true</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#ff0000;">issuer</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">https://login.windows.net/common/wsfed</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#ff0000;">realm</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">http://localhost:45906/</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#ff0000;">reply</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">http://localhost:45906/</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#ff0000;">requireHttps</span><span style="background:#ffffff;color:#0000ff;">=</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;">false</span><span style="background:#ffffff;color:#000000;">"</span><span style="background:#ffffff;color:#0000ff;"> /&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">federationConfiguration</span><span style="background:#ffffff;color:#0000ff;">&gt;</span><br />
+<span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">system.identityModel.services</span><span style="background:#ffffff;color:#0000ff;">&gt;</span></div>
+</div>
+</div>
+<p>Now when I run my application, I’m redirected to azure AD for authentication and after signing in, I’m back in my app with following claims.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/05/image4.png"><img style="display:inline;border:0;" title="image" alt="image" src="{{ site.baseurl }}/assets/image_thumb4.png" width="244" height="175" border="0" /></a></p>
+<p>The Authorize action simply redirects to the authorization endpoint requesting an ‘authorization code’.</p>
+<div class="wlWriterEditableSmartContent" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:96d9bbfc-986e-4f10-b1fb-70454fab92d7" style="float:none;margin:0;display:inline;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Acquire authorization code</div>
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;padding:2px 5px;white-space:nowrap;"><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#2b91af;">ActionResult</span><span style="background:#ffffff;color:#000000;"> Authorize()</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><br />
+<span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> @params = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">NameValueCollection</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"response_type"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"code"}</span><span style="background:#ffffff;color:#000000;">,</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"client_id"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"87638e3d-6b56-46b6-946f-8b3b9fa6f04e"}</span><span style="background:#ffffff;color:#000000;">,</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"resource"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"https://graph.windows.net"}</span><span style="background:#ffffff;color:#000000;">,</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"redirect_uri"</span><span style="background:#ffffff;color:#000000;">, Url.Action(</span><span style="background:#ffffff;color:#a31515;">"Authorized"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#0000ff;">null</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#0000ff;">null</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"http"</span><span style="background:#ffffff;color:#000000;">)}</span><br />
+<span style="background:#ffffff;color:#000000;">};</span><br />
+<span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> query = </span><span style="background:#ffffff;color:#2b91af;">HttpUtility</span><span style="background:#ffffff;color:#000000;">.ParseQueryString(</span><span style="background:#ffffff;color:#a31515;">""</span><span style="background:#ffffff;color:#000000;">);</span><br />
+<span style="background:#ffffff;color:#000000;">query.Add(@params);</span>    <span style="background:#ffffff;color:#0000ff;">return</span><span style="background:#ffffff;color:#000000;"> Redirect(</span><span style="background:#ffffff;color:#2b91af;">Constants</span><span style="background:#ffffff;color:#000000;">.AzureADAuthorizationEndpoint + </span><span style="background:#ffffff;color:#a31515;">"?"</span><span style="background:#ffffff;color:#000000;"> + query);</span><br />
+<span style="background:#ffffff;color:#000000;">}</span></p>
+</div>
+</div>
+</div>
+<p>&nbsp;</p>
+<p>I’m passing <span style="text-decoration:underline;">Authorize<strong>d</strong></span> action as the redirect_uri to Azure AD. That’s where AD would send me the ‘authorization code'.</p>
+<p>Clicking the ‘Authorize’ link takes me to Azure Ad &amp; after authentication AD redirects my browser back to Authorize<strong>d</strong> action with an authorization code.</p>
+<p><a title="http://localhost:45906/Home/Authorized?code=AAAAAAAAcJ3MFRmxlJAB5CwTBrXmI7t8zdfTrUmfPCbGHQCxbWXOxLieUD4r_fah-rnOwQkxS6B_KOSdLhjsf6n5sQghMwu9ynqFD2-qHBfRkxE3DnS8htlHaDqCdG-Wa5MvbRXZeCKUFr-k37n5Mn4T2KCdKx-nkyNheqZJmwmDFWwix_Gi_QJohhUMk-SDyrnV4Jy-tT_gfiKwKRzVi31JmsJV_b8u-5p398GsGfxBlfxuWuNYuUiUOUDdfLQCYbK0urn0HChsndnPuTZJxtJtNH7WdWnUdha108kVctvHW4u8IihV9P10OsM1gT_D67f00SjVIAA" href="http://localhost:45906/Home/Authorized?code=AAAAAAAAcJ3MFRmxlJAB5CwTBrXmI7t8zdfTrUmfPCbGHQCxbWXOxLieUD4r_fah-rnOwQkxS6B_KOSdLhjsf6n5sQghMwu9ynqFD2-qHBfRkxE3DnS8htlHaDqCdG-Wa5MvbRXZeCKUFr-k37n5Mn4T2KCdKx-nkyNheqZJmwmDFWwix_Gi_QJohhUMk-SDyrnV4Jy-tT_gfiKwKRzVi31JmsJV_b8u-5p398GsGfxBlfxuWuNYuUiUOUDdfLQCYbK0urn0HChsndnPuTZJxtJtNH7WdWnUdha108kVctvHW4u8IihV9P10OsM1gT_D67f00SjVIAA">http://localhost:45906/Home/Authorized?code=AAAAAAAAcJ3MFRmxlJAB5CwTBrXmI7t8zdfTrUmfPCbGHQCxbWXOxLieUD4r_fah-rnOwQkxS6B_KOSdLhjsf6n5sQghMwu9ynqFD2-qHBfRkxE3DnS8htlHaDqCdG-Wa5MvbRXZeCKUFr-k37n5Mn4T2KCdKx-nkyNheqZJmwmDFWwix_Gi_QJohhUMk-SDyrnV4Jy-tT_gfiKwKRzVi31JmsJV_b8u-5p398GsGfxBlfxuWuNYuUiUOUDdfLQCYbK0urn0HChsndnPuTZJxtJtNH7WdWnUdha108kVctvHW4u8IihV9P10OsM1gT_D67f00SjVIAA</a></p>
+<p>From the Authorize<strong>d</strong> controller action I fire a post request which gives me access and refresh tokens back. Please note, the redirect_uri MUST be same for both authorization code and token request.</p>
+<div class="wlWriterEditableSmartContent" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:5efb38a8-e102-4eb5-a5b6-9bfdfb2ff8e0" style="float:none;margin:0;display:inline;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Exchange code with tokens</div>
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;padding:2px 5px;white-space:nowrap;"><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#0000ff;">async</span><span style="background:#ffffff;color:#2b91af;">Task</span><span style="background:#ffffff;color:#000000;">&lt;</span><span style="background:#ffffff;color:#2b91af;">ActionResult</span><span style="background:#ffffff;color:#000000;">&gt; Authorized(</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;"> code)</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><br />
+<span style="background:#ffffff;color:#0000ff;">if</span><span style="background:#ffffff;color:#000000;"> (</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;">.IsNullOrEmpty(code))</span><br />
+<span style="background:#ffffff;color:#000000;">RedirectToAction(</span><span style="background:#ffffff;color:#a31515;">"Index"</span><span style="background:#ffffff;color:#000000;">);</span>    <span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> data = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">Dictionary</span><span style="background:#ffffff;color:#000000;">&lt;</span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;">&gt;</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"grant_type"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"authorization_code"}</span><span style="background:#ffffff;color:#000000;">,</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"client_id"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"87638e3d-6b56-46b6-946f-8b3b9fa6f04e"}</span><span style="background:#ffffff;color:#000000;">,</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"redirect_uri"</span><span style="background:#ffffff;color:#000000;">, Url.Action(</span><span style="background:#ffffff;color:#a31515;">"Authorized"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#0000ff;">null</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#0000ff;">null</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"http"</span><span style="background:#ffffff;color:#000000;">)},</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"client_secret"</span><span style="background:#ffffff;color:#000000;">, </span><span style="background:#ffffff;color:#a31515;">"V/7FTVm****************UQi6MkbwhmBqKxz0="}</span><span style="background:#ffffff;color:#000000;">,</span><br />
+<span style="background:#ffffff;color:#000000;">{</span><span style="background:#ffffff;color:#a31515;">"code"</span><span style="background:#ffffff;color:#000000;">, code}</span><br />
+<span style="background:#ffffff;color:#000000;">};</span></p>
+<p><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> client = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">HttpClient</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">WebRequestHandler</span><span style="background:#ffffff;color:#000000;">());</span><br />
+<span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> response = </span><span style="background:#ffffff;color:#0000ff;">await</span><span style="background:#ffffff;color:#000000;"> client.PostAsync(</span><span style="background:#ffffff;color:#2b91af;">Constants</span><span style="background:#ffffff;color:#000000;">.AzureADTokenEndpoint, </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">FormUrlEncodedContent</span><span style="background:#ffffff;color:#000000;">(data));</span><br />
+<span style="background:#ffffff;color:#000000;">response.EnsureSuccessStatusCode();</span></p>
+<p><span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> msg = </span><span style="background:#ffffff;color:#0000ff;">await</span><span style="background:#ffffff;color:#000000;"> response.Content.ReadAsStringAsync();</span><br />
+<span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> tokenResponse = </span><span style="background:#ffffff;color:#2b91af;">JsonConvert</span><span style="background:#ffffff;color:#000000;">.DeserializeObject&lt;</span><span style="background:#ffffff;color:#2b91af;">TokenResponse</span><span style="background:#ffffff;color:#000000;">&gt;(msg);</span><br />
+<span style="background:#ffffff;color:#0000ff;">return</span><span style="background:#ffffff;color:#000000;"> View(tokenResponse);</span><br />
+<span style="background:#ffffff;color:#000000;">}</span></p>
+</div>
+</div>
+</div>
+<p><a href="http://zuahmed.files.wordpress.com/2013/05/image5.png"><img style="display:inline;border:0;" title="image" alt="image" src="{{ site.baseurl }}/assets/image_thumb5.png" width="244" height="95" border="0" /></a></p>
+<p>The access &amp; refresh tokens are scoped to Graph API in this case. I can now attach this “access token” to my requests to graph API to read/write the directory data. There are few samples on this topic already so I’m not going to cover that in this post.</p>
+<p>Source: <a href="http://sdrv.ms/13u8iid">HomeController.cs</a></p>

@@ -1,0 +1,40 @@
+---
+layout: post
+title: Office 365 federation requirements
+date: 
+type: post
+published: false
+status: draft
+categories: []
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<ul>
+<ul>
+<li>Shadow account must be created with a unique ImmutableID</li>
+<li><strong>IssuerUri</strong> attribute of Set-MsolDomainFederationSettings must match the <strong>Issuer </strong>property of the SAML assertion. i.e. the issuerName in WIF configuration.</li>
+<li>SigningCredential must use Sha1 signature algorithm. Signing certificate can be a self-signed SSL certificate.</li>
+</ul>
+</ul>
+<p>scope.SigningCredentials = new X509SigningCredentials(signingCert,<br />
+SecurityAlgorithms.RsaSha1Signature,<br />
+SecurityAlgorithms.Sha1Digest);</p>
+<ul>
+<li>Specific NameIdentifier must be emitted</li>
+</ul>
+<p>var nameid = new Claim(ClaimTypes.NameIdentifier, "7960192");<br />
+nameid.Properties[ClaimProperties.SamlNameIdentifierFormat] = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";<br />
+var outputClaims = new List&lt;Claim&gt;<br />
+{<br />
+new Claim("<a href="http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID&quot;">http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID"</a>,<br />
+"7960192"),<br />
+new Claim("<a href="http://schemas.xmlsoap.org/claims/UPN&quot;">http://schemas.xmlsoap.org/claims/UPN"</a>, "zulfiqar@bccoss.com"),<br />
+nameid<br />
+};</p>

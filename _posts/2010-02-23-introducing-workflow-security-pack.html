@@ -1,0 +1,51 @@
+---
+layout: post
+title: Introducing Workflow Security Pack
+date: 2010-02-23 21:23:08.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4
+- WFSP
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Have you already started serious development with WF 4 and found security limitations?</p>
+<p class="MsoNormal">Have you struggled to implement authenticated messaging, claims-based security, role-based security and other security features in workflow solutions?</p>
+<p class="MsoNormal">WF 4 is a highly extensible framework so most of these features can be built using the WF extensibility model, but wouldn’t it be nice to have all of these security features available in an easy to use activity library?</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal">Here comes the Workflow Security Pack (WFSP) project... WFSP is a collection of activities and associated plumbing to enable key security scenarios in WF 4.  WFSP activities blend with the rest of the WF to bring end-to-end integrated security into workflow solutions. The following diagram shows the initial set of activities which are part of WFSP.</p>
+<p class="MsoNormal"><img src="{{ site.baseurl }}/assets/image001.jpg" alt="cid:image001.jpg@01CAB458.185E10A0" width="486" height="566" /><span style="color:#1f497d;"> </span></p>
+<p class="MsoNormal">Following are some of the scenarios enabled by WFSP:</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">1.<span style="font:7pt &quot;">      </span>Authenticated messaging</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">a.<span style="font:7pt &quot;">      </span>Enables the use of various credentials with Send activity</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">b.<span style="font:7pt &quot;">      </span>Follows exactly the same model when using a Username token or a Saml token issued by an STS</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">2.<span style="font:7pt &quot;">      </span>Role-based security</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">a.<span style="font:7pt &quot;">      </span>Enables principal permission based authorization on the Receive activity</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">b.<span style="font:7pt &quot;">      </span>Supports standard RoleProvider extensibility model</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">3.<span style="font:7pt &quot;">      </span>Claims-based security</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">a.<span style="font:7pt &quot;">      </span>Ability to acquire a SAML token using the WS-Trust protocol</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">b.<span style="font:7pt &quot;">      </span>Ability to pass this token to a SAML secured service using WS-Security</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">4.<span style="font:7pt &quot;">      </span>End-to-end Claim-based delegation</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">a.<span style="font:7pt &quot;">      </span>Ability to use any token as an ActAs token</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">5.<span style="font:7pt &quot;">      </span>Transparent handling of tokens in a long-running environment</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">a.<span style="font:7pt &quot;">      </span>Enlisted tokens are preserved during persist and reload cycles</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">6.<span style="font:7pt &quot;">      </span>Impersonation and Delegation support</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">a.<span style="font:7pt &quot;">      </span>Ability to impersonate incoming Identity on Receive side</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">b.<span style="font:7pt &quot;">      </span>Ability to impersonate a User identity on the Send side</p>
+<p class="MsoListParagraph" style="margin-left:90pt;text-indent:-18pt;">c.<span style="font:7pt &quot;">      </span>Ability to call a backend service from the Impersonated scope (Kerberos delegation)</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;">7.<span style="font:7pt &quot;">      </span>WCF OperationContext access in a thread-agnostic way</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal">In future posts, I’ll take an in-depth look into each of activities above and various scenarios enabled by these activities. Stay tuned.</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal"> </p>
+</div>

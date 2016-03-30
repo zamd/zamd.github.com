@@ -1,0 +1,37 @@
+---
+layout: post
+title: Enabling ‘Import Service Contract’ menu option
+date: 2013-01-02 16:09:44.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4.5
+tags:
+- Contract-First
+- Import Service Contract
+- WF4.5
+meta:
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>WF 4.5 introduced contact first development using which you can generate messaging activities from your existing WCF contracts. Out of box, this feature is only enabled for ‘WCF Workflow Service Application’ project type and is exposed using the ‘Import Service Contract’ context menu.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/01/image.png"><img title="image" style="display:inline;border-width:0;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="472" height="180" /></a> <a href="http://zuahmed.files.wordpress.com/2013/01/image1.png"><img title="image" style="display:inline;border-width:0;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb1.png" width="244" height="179" /></a> </p>
+<p>This is quite useful feature and is certainly required in other project types as well. For example, a workflow hosted using WorkflowServiceHost in a windows service or a console application. You can easily enable the context menu option for other project types by including an additional GUID in the &lt;ProjectTypeGuids&gt; element in <strong>csproj</strong> file.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:326d3d30-e2b9-475b-a852-f47045f87fde" class="wlWriterEditableSmartContent" style="float:none;margin:0;display:inline;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;overflow:auto;padding:2px 5px;"><span style="background:#ffffff;color:#0000ff;">  &lt;</span><span style="background:#ffffff;color:#a31515;">ProjectTypeGuids</span><span style="background:#ffffff;color:#0000ff;">&gt;{</span><span style="background:#ffffff;color:#000000;">32f31d43-81cc-4c15-9de6-3fc5453562b6};{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</span><span style="background:#ffffff;color:#0000ff;">&lt;/</span><span style="background:#ffffff;color:#a31515;">ProjectTypeGuids</span><span style="background:#ffffff;color:#0000ff;">&gt;</span></div>
+</p></div>
+</p></div></p>
+<ul>
+<li>Unload the project in VS and open the csproj file using the xml editor. </li>
+<li>Locate the &lt;ProjectTypeGuids&gt; element and insert this {349c5851-65df-11da-9384-00065b846f21} as the content of element along with other GUIDs. </li>
+<li>Make sure to put a semicolon at the end of your newly inserted GUID. </li>
+<li>Reload the project in VS and you should now see the ‘Import Service Contract’ menu option. </li>
+</ul>

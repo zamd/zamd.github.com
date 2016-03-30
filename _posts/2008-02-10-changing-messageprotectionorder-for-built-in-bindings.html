@@ -1,0 +1,36 @@
+---
+layout: post
+title: Changing MessageProtectionOrder for Built-in bindings
+date: 2008-02-10 22:29:53.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><a href="http://msdn2.microsoft.com/en-us/library/system.servicemodel.security.messageprotectionorder.aspx">MessageProtectionOrder</a> enumeration defines the order of encryption and signing for the SOAP messages. WCF could be configured to first sign messages and then encrypt or other way around. </p>
+<p class="MsoNormal">All the built-in bindings (basicHttpBinding, wsHttpBinding etc) uses a default protection order and won't let you change it. The only way to change the protection order is to use a custom binding(&lt;message&gt; element). However you might end up in a situation where you have configured all sorts of settings on a built-in binding and now you want to alter the protection order (or any other setting not directly exposed through the built-in binding). Following steps and code snipped shows how to create a custom binding to override a property value while still retaining the original settings of the binding/elements. </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="font-family:Symbol;">·<span style="font:7pt 'Times New Roman';">         </span></span>Ask the configured binding to create all the binding elements for you (as configured in config file). </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="font-family:Symbol;">·<span style="font:7pt 'Times New Roman';">         </span></span>Find the required BindingElement, which exposing the property you need to change (AsymmetricSecurityBindingElement in this case). </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="font-family:Symbol;">·<span style="font:7pt 'Times New Roman';">         </span></span>Overwrite the current value with your desired value. You could also pick the actual value from the config file. </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="font-family:Symbol;">·<span style="font:7pt 'Times New Roman';">         </span></span>Now create a CustomBinding object and copy updated binding element collection into this new object. </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="color:#1f497d;font-family:Symbol;">·<span style="font:7pt 'Times New Roman';">         </span></span>Set the custom binding as new binding for the endpoint.<span style="color:#1f497d;"> </span> </p>
+<p class="MsoNormal" style="margin-left:.75in;"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">BindingElementCollection</span><strong><span style="font-size:10pt;font-family:'Courier New';"> col = fac.Endpoint.Binding.CreateBindingElements();</span></strong><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal" style="margin-left:.75in;"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">AsymmetricSecurityBindingElement</span><strong><span style="font-size:10pt;font-family:'Courier New';"> asbe = col.Find&lt;</span></strong><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">AsymmetricSecurityBindingElement</span><span style="font-size:10pt;font-family:'Courier New';">&gt;();</span> </p>
+<p class="MsoNormal" style="margin-left:.75in;"><span style="font-size:10pt;font-family:'Courier New';">asbe.MessageProtectionOrder = <span style="color:#2b91af;">MessageProtectionOrder</span>.EncryptBeforeSign;</span> </p>
+<p class="MsoNormal" style="margin-left:.75in;"><span style="font-size:10pt;font-family:'Courier New';">fac.Endpoint.Binding = <span style="color:blue;">new</span><strong> </strong><span style="color:#2b91af;">CustomBinding</span><strong>(col);</strong></span> </p>
+<p class="MsoNormal">Note: You have the flexibility to make the change on a per endpoint basis rather for the whole binding; it all depends on your requirements. </p>
+<p class="MsoNormal">In the next post, I will talk about <a href="http://msdn2.microsoft.com/en-us/library/system.net.security.protectionlevel.aspx">ProtectionLevel</a> attribute and how to make it config enabled. </p>
+<p class="MsoNormal"><span style="color:#1f497d;"> </span> </p>
+<p class="MsoNormal">Stay tuned... </p>
+</div>

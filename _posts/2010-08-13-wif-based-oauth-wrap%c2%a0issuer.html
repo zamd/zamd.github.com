@@ -1,0 +1,145 @@
+---
+layout: post
+title: WIF based OAuth WRAP Issuer
+date: 2010-08-13 15:45:35.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WIF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _wp_old_slug: ''
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>WIF provides an API to develop Security Token Services (STSs) which can then be exposed using either WS-Trust (Active-STS) or WS-Federation(Passive-STS) protocols. As mentioned in last post, WIF currently doesn’t support OAuth WRAP protocol so out of box a WIF based <a href="http://msdn.microsoft.com/en-us/library/microsoft.identitymodel.securitytokenservice.securitytokenservice.aspx">SecurityTokenService</a> cannot be used as an OAuth WRAP issuer. In this post, I’ll show you some extensions I have created to expose a service, based on WIF’s token issuance object model (SecurityTokenService, RequestSecurityTokenRequest etc), as an OAuth WRAP issuer. </p>
+<p>1: Create an issuer using the standard WIF approach. The only difference is that I’m using a symmetric key for signatures. </p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;color:blue;font-size:9.5pt;">public</span><span style="font-family:consolas;font-size:9.5pt;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">OAuthIssuer</span> : <span style="color:#2b91af;">SecurityTokenService</span></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span><span style="color:blue;">public</span> OAuthIssuer(<span style="color:#2b91af;">SecurityTokenServiceConfiguration</span> config):<span style="color:blue;">base</span>(config){}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span><span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">IClaimsIdentity</span> GetOutputClaimsIdentity(<span style="color:#2b91af;">IClaimsPrincipal</span> principal, <span style="color:#2b91af;">RequestSecurityToken</span> request, <span style="color:#2b91af;">Scope</span> scope)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">ClaimsIdentity</span>(<span style="color:blue;">new</span> <span style="color:#2b91af;">Claim</span>[] {</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">new</span> <span style="color:#2b91af;">Claim</span>(<span style="color:#2b91af;">ClaimTypes</span>.Name, <span style="color:#a31515;">&quot;John&quot;</span>),</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">new</span> <span style="color:#2b91af;">Claim</span>(<span style="color:#a31515;">&quot;email&quot;</span>, <span style="color:#a31515;">&quot;John@test.com&quot;</span>) });</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span><span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">Scope</span> GetScope(<span style="color:#2b91af;">IClaimsPrincipal</span> principal,</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">RequestSecurityToken</span> request)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">var</span> scope =<span>&#160; </span><span style="color:blue;">new</span> <span style="color:#2b91af;">Scope</span></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>AppliesToAddress = request.AppliesTo.Uri.AbsoluteUri</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>};</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>scope.TokenEncryptionRequired = <span style="color:blue;">false</span>;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>scope.SymmetricKeyEncryptionRequired = <span style="color:blue;">false</span>;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="background:yellow;">scope.SigningCredentials = <span style="color:blue;">new</span> <span style="color:#2b91af;">SymmetricSigningCredentials</span>(<span style="color:#a31515;">&quot;Sapm9PPZZHlo=&quot;</span>);</span></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">return</span> scope;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">}</p>
+<p>   </span></p></p>
+<p>2: Host the issuer using following code:</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;color:blue;font-size:9.5pt;">var</span><span style="font-family:consolas;font-size:9.5pt;"> config = <span style="color:blue;">new</span> <span style="color:#2b91af;">OAuthIssuerConfiguration</span>()</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>SecurityTokenService = <span style="color:blue;">typeof</span>(<span style="color:#2b91af;">OAuthIssuer</span>)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">};</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">config.TokenIssuerName = <span style="color:#a31515;">&quot;MyCustomIssuer&quot;</span>;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">config.SecurityTokenHandlers.AddOrReplace(<span style="color:blue;">new</span> <span style="color:#2b91af;">CustomUserNameSecurityTokenHandler</span></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>UserNamePasswordValidator = (uid, pwd) =&gt;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:#2b91af;">Console</span>.WriteLine(uid + <span style="color:#a31515;">&quot; validated.&quot;</span>);</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">});</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;color:blue;font-size:9.5pt;">var</span><span style="font-family:consolas;font-size:9.5pt;"> sh = <span style="color:blue;">new</span> <span style="color:#2b91af;">OAuthServiceHost</span>(config, <span style="color:blue;">new</span> <span style="color:#2b91af;">Uri</span>(<span style="color:#a31515;">&quot;http://localhost:9111&quot;</span>));</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">sh.Open();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">That’s it, A WIF based OAuth WRAP issuer is ready.</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><strong>OAuthServiceHost </strong>inherits from WCF <strong>WebServiceHost </strong>and exposes a fixed OAuth WRAP contract to the outside world. </p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;color:blue;font-size:9.5pt;">public</span><span style="font-family:consolas;font-size:9.5pt;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">OAuthServiceHost</span> : <span style="color:#2b91af;">WebServiceHost</span></p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span><span style="color:blue;">internal</span> <span style="color:#2b91af;">OAuthIssuerConfiguration</span> Configuration { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span><span style="color:blue;">public</span> OAuthServiceHost(<span style="color:#2b91af;">OAuthIssuerConfiguration</span> config)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>: <span style="color:blue;">this</span>(config, <span style="color:blue;">null</span>) { }</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">
+<p>&#160;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span><span style="color:blue;">public</span> OAuthServiceHost(<span style="color:#2b91af;">OAuthIssuerConfiguration</span> config, <span style="color:#2b91af;">Uri</span> baseAddress)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span>: <span style="color:blue;">base</span>(<span style="background:yellow;color:blue;">typeof</span><span style="background:yellow;">(<span style="color:#2b91af;">OAuthIssuerContract</span>),</span> baseAddress)</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>{</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><span style="color:blue;">this</span>.Configuration = config;</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;"><span>&#160;&#160;&#160; </span>}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:consolas;font-size:9.5pt;">}</p>
+<p>   </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">The implementation of OAuth WRAP contract transforms the incoming token issuance request into WIF’s token issuance object model (RequestSecurityTokenRequest etc) and starts the token issuance pipeline. At the end of the pipeline, it packages the final set of claim in a&#160; Simple Web Token and returns it back. </p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><a href="http://cid-724b6fcd63a8c1ac.office.live.com/self.aspx/zamd.net/WIFBasedOAuthWrapIssuer.zip">Source code</a></p>

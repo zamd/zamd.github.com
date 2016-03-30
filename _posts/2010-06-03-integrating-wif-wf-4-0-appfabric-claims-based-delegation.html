@@ -1,0 +1,37 @@
+---
+layout: post
+title: 'Integrating WIF, WF 4.0 & AppFabric: Claims-Based-Delegation'
+date: 2010-06-03 19:20:58.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4
+- WFSP
+- WIF
+tags: []
+meta:
+  _oembed_ba9f402a56a6c4dc11650dca43150969: '{{unknown}}'
+  _oembed_eb45bdbb33ecd407d69b179a9e611951: '{{unknown}}'
+  _oembed_9d852b664ae0b07a3ec85a4ad6da3a01: '{{unknown}}'
+  _oembed_f18735f49f703117218b536474c78a55: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>Extending upon my <a href="http://zamd.net/2010/05/18/integrating-wif-with-wf-4-0-and-appfabric/">last post</a>, where I have talked about basic integration, this post will go into the details of claims-based-delegation in WF 4.0 &amp; AppFabric. </p>
+<p>Again I’ll be using activities from the <a href="http://zamd.net/2010/02/23/introducing-workflow-security-pack/">Workflow Security Pack</a>. Let’s start with a diagram which captures the main components of solution and their interactions:</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/06/image.png"><img style="border-bottom:0;border-left:0;display:block;float:none;margin-left:auto;border-top:0;margin-right:auto;border-right:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="816" height="394" /></a>&#160;</p>
+<ol>
+<li>Unauthenticated user browse to web application protected by WIF modules.</li>
+<li>WIF redirects user to Passive STS for authentication</li>
+<li>User authenticates @ passive STS and is redirected back to the ASP.net app along with the Issued Token. WIF modules processes this token and upon successful validation of the token, user is logged into the application. I have configured <a href="http://msdn.microsoft.com/en-us/library/microsoft.identitymodel.configuration.serviceconfiguration.savebootstraptokens.aspx">SaveBootstrapTokens</a> on this app, so the raw incoming token is preserved as part of IClaimsIdentity.</li>
+<li>Users click the “Call Service” link to invoke following client workflow. GetBootstrapToken activity reads the bootstrap token and enlist it with the SecurityTokenHandle (specified on the InitializeActAsToken activity) as an ActAs token.<img style="border-bottom:0;border-left:0;display:block;float:none;margin-left:auto;border-top:0;margin-right:auto;border-right:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb1.png" width="296" height="483" /></li>
+<li>InitializeSamlSecurityToken activity issues a request (RST) to acquire a SAML token from the STS using the ActAs token enlisted in step 4. InitializeSamlSecurityToken is able to see the ActAs token (enlisted by InitializeActAsToken activity)&#160; because both of these activities share the same SecurityTokenHandle. At this stage, Web App is authenticated by STS using windows authentication while ActAs token is a Saml token (acquired using forms authentication in step 3). The final Saml token will contain claims for both immediate (web app) and original caller (authenticated user).</li>
+<li>TokenFlowScope activity along with the workflowCredentials behaviour (configured on the endpoint used by the Echo activity) enhances the WCF security pipeline to attach the Saml token (acquired in step 5) with the outgoing message. As part of it’s execution, TokenFlowScope will detect that Echo activity requires a Saml token, it will then check it’s enlisted tokens to see if it can satisfy the token requirements of the Echo activity. In this example, there is already a Saml token enlisted with the handle so TokenFlowScope simply attaches that token with the outgoing message.</li>
+</ol>
+<p>I have attached complete solution with this post. I tried to keep the solution self-contained by using file-based certificates and other shortcuts so hopefully you should be able to get it working by just hitting Ctrl-F5 :) </p>
+<p>Feel free to <a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/WF-Claims-based-delegation.zip">download</a> and experiment and let me know your thoughts…</p>

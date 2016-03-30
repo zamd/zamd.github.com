@@ -1,0 +1,104 @@
+---
+layout: post
+title: JSON vs XML encoder performance
+date: 2008-12-16 14:05:16.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Tim has <a href="http://www.tbray.org/ongoing/When/200x/2006/12/21/JSON">summarized</a> that both JSON and XML has their unique place. JSON encoded data has smaller wire footprint and is easier to convert back into Javascript objects using javascript:eval function so it&#8217;s generally favoured in AJAX scenarios. I was asked about WCF encoding performance for JSON and XML (text). My initial guess was there shouldn&#8217;t be much difference in encoding performance so to validate my assumption I wrote following code to test the encoding performance and indeed it&#8217;s roughly the same. </p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">To encode same message 300000 times it&nbsp; took following number of ticks (roughly equal).</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:14pt;color:#1F497D;">XML encoding ticks = 63810463</span></p>
+<p class="MsoNormal"><span style="font-size:14pt;color:#1F497D;">JSON encoding ticks = 68490315</span><span style="color:#1F497D;"></span></p>
+<p class="MsoNormal">I used following code in my testing.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:blue;">namespace</span><span style="font-size:12pt;font-family:\"Courier New\";"> encodingPerformance</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2B91AF;">Data</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> Name { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> Address { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">double</span> Salary { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> Email { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> SpouseName { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">int</span> FamilyCount { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">int</span> Age { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">class</span> <span style="color:#2B91AF;">Program</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> d = <span style="color:blue;">new</span> <span style="color:#2B91AF;">Data</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Address = <span style="color:#A31515;">&quot;15 ********* aveneu.&quot;</span>,</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Age = 29,</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email = <span style="color:#A31515;">&quot;uzhadaf@ gamicl.com&quot;</span>,</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FamilyCount = 3,</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Name = <span style="color:#A31515;">&quot;******* rAhmeD2&quot;</span>,</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Salary = 111212121.121,</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SpouseName = <span style="color:#A31515;">&quot;Sigrasdf&quot;</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:#A31515;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; };</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">const</span> <span style="color:blue;">int</span> ITER = 3000000;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> ms = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MemoryStream</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> tbe = <span style="color:blue;">new</span> <span style="color:#2B91AF;">TextMessageEncodingBindingElement</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tbe.MessageVersion = <span style="color:#2B91AF;">MessageVersion</span>.None;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> msg = <span style="color:#2B91AF;">Message</span>.CreateMessage(<span style="color:#2B91AF;">MessageVersion</span>.None, <span style="color:#A31515;">&quot;&quot;</span>, d);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> buf = msg.CreateBufferedCopy(<span style="color:blue;">int</span>.MaxValue);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> sw = <span style="color:#2B91AF;">Stopwatch</span>.StartNew();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;background:lime;">for</span><span style="background:lime;"> (<span style="color:blue;">int</span> i = 0; i &lt; ITER; i++)</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:lime;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:lime;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; msg = buf.CreateMessage();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:lime;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tbe.CreateMessageEncoderFactory().Encoder.WriteMessage(msg, ms);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:lime;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ms.Seek(0, <span style="color:#2B91AF;">SeekOrigin</span>.Begin);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:lime;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span><span style="font-size:12pt;font-family:\"Courier New\";"></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sw.Stop();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.WriteLine(<span style="color:#A31515;">&quot;XML encoding ticks = {0} &quot;</span>, sw.ElapsedTicks);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; msg = <span style="color:#2B91AF;">Message</span>.CreateMessage(<span style="color:#2B91AF;">MessageVersion</span>.None, <span style="color:#A31515;">&quot;&quot;</span>, d, <span style="color:blue;">new</span> <span style="color:#2B91AF;">DataContractJsonSerializer</span>(<span style="color:blue;">typeof</span>(<span style="color:#2B91AF;">Data</span>)));</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buf = msg.CreateBufferedCopy(<span style="color:blue;">int</span>.MaxValue);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> wbe = <span style="color:blue;">new</span> <span style="color:#2B91AF;">WebMessageEncodingBindingElement</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> prop = <span style="color:blue;">new</span> <span style="color:#2B91AF;">WebBodyFormatMessageProperty</span>(<span style="color:#2B91AF;">WebContentFormat</span>.Json);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// measure JSON encoding time....</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sw = <span style="color:#2B91AF;">Stopwatch</span>.StartNew();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;background:yellow;">for</span><span style="background:yellow;"> (<span style="color:blue;">int</span> i = 0; i &lt; ITER; i++)</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; msg = buf.CreateMessage();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; msg.Properties.Add(<span style="color:#2B91AF;">WebBodyFormatMessageProperty</span>.Name, prop); <span style="color:green;">//JSON encode</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; wbe.CreateMessageEncoderFactory().Encoder.WriteMessage(msg, ms);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ms.Seek(0, <span style="color:#2B91AF;">SeekOrigin</span>.Begin);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span><span style="font-size:12pt;font-family:\"Courier New\";"></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sw.Stop();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.WriteLine(<span style="color:#A31515;">&quot;JON encoding ticks = {0} &quot;</span>, sw.ElapsedTicks);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">}</span><span style="color:#1F497D;"></span></p>
+</p></div>

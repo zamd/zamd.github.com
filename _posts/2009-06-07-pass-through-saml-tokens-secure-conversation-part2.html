@@ -1,0 +1,149 @@
+---
+layout: post
+title: Pass-through SAML tokens & Secure Conversation (Part2)
+date: 2009-06-07 13:05:57.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- Federation/STS
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Few people have contacted me regarding follow-up on my <a href="http://www.zamd.net/2009/05/08/PassthroughSAMLTokensSecureConversationPart1.aspx">last</a> post so this post continues where the last one left off.</p>
+<p class="MsoNormal">To keep the API simple, I have created few extension methods. Let’s first review these.</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">static</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">Extensions</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> EnableSamlTokenCaching(<span style="color:blue;">this</span> <span style="color:#2b91af;">ServiceHostBase</span> source)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> orignal = source.Description.Behaviors.Remove&lt;<span style="color:#2b91af;">ServiceCredentials</span>&gt;();</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        source.Description.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">ServiceCredentialsEx</span>(orignal));</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">static</span> <span style="color:#2b91af;">SamlSecurityToken</span> GetIncommingSamlToken(<span style="color:blue;">this</span> <span style="color:#2b91af;">ServiceSecurityContext</span> source)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> policy = source.AuthorizationPolicies.OfType&lt;<span style="color:#2b91af;">SamlTokenCachingPolicy</span>&gt;().FirstOrDefault();</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">if</span> (policy != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">            <span style="color:blue;">return</span> policy.IncommingSamlToken;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> <span style="color:blue;">null</span>;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> EnableSamlTokenFlow&lt;TChannel&gt;(<span style="color:blue;">this</span> <span style="color:#2b91af;">ClientBase</span>&lt;TChannel&gt; source, <span style="color:#2b91af;">SamlSecurityToken</span> tokenToFlow) <span style="color:blue;">where</span> TChannel : <span style="color:blue;">class</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> orignal = source.Endpoint.Behaviors.Remove&lt;<span style="color:#2b91af;">ClientCredentials</span>&gt;();</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        source.Endpoint.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">ClientCredentialsWrapper</span>(orignal));</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;">}</span></p>
+<p class="MsoNormal"><strong><span style="font-size:8pt;line-height:115%;font-family:&quot;">EnableSamlTokenCaching </span></strong>is what you have to call to enable SAML token caching functionality for a particular <em>ServiceHost</em>. Here is an example of a simple host (created using a custom factory (IIS/WAS hosted scenario)) being configured with this API</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">EchoServiceHostFactory</span> : <span style="color:#2b91af;">ServiceHostFactoryBase</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ServiceHostBase</span> CreateServiceHost(<span style="color:blue;">string</span> constructorString, <span style="color:#2b91af;">Uri</span>[] baseAddresses)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> sh = <span style="color:blue;">new</span> <span style="color:#2b91af;">ServiceHost</span>(<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">EchoService</span>), baseAddresses);</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="background:yellow;">sh.EnableSamlTokenCaching();</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> sh;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;">}</span></p>
+<p class="MsoNormal">The highlighted call simply injects couple of customized components (interceptors) into WCF’s security framework. Specifically it is injecting a new customized <span style="font-size:8pt;line-height:115%;font-family:&quot;color:#2b91af;"><a href="http://msdn.microsoft.com/en-us/library/system.identitymodel.selectors.samlsecuritytokenauthenticator.aspx">SamlSecurityTokenAuthenticator</a></span>, which wraps the original authenticator and simply delegates all calls to it. </p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;color:#2b91af;">SamlSecurityTokenAuthenticator </span>is called during secure conversation handshake. Here our custom authenticator (SamlSecurityTokenAuthenticatorEx<span style="font-size:8pt;line-height:115%;font-family:&quot;color:#2b91af;">)</span> enables us to get hold of the incoming SAML token etc.</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">ServiceCredentialsEx</span> : <span style="color:#2b91af;">ServiceCredentials</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> ServiceCredentialsEx(<span style="color:#2b91af;">ServiceCredentials</span> other)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        : <span style="color:blue;">base</span>(other){}</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">SecurityTokenManager</span> CreateSecurityTokenManager()</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:#2b91af;background:lime;">ServiceCredentialsSecurityTokenManagerEx</span>(<span style="color:blue;">this</span>);</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ServiceCredentials</span> CloneCore()</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">ServiceCredentialsEx</span>(<span style="color:blue;">this</span>);</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">}</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">ServiceCredentialsSecurityTokenManagerEx</span> : <span style="color:#2b91af;">ServiceCredentialsSecurityTokenManager</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> ServiceCredentialsSecurityTokenManagerEx(<span style="color:#2b91af;">ServiceCredentials</span> parent)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        : <span style="color:blue;">base</span>(parent){}</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">SecurityTokenAuthenticator</span> CreateSecurityTokenAuthenticator(<span style="color:#2b91af;">SecurityTokenRequirement</span> tokenRequirement, <span style="color:blue;">out</span> <span style="color:#2b91af;">SecurityTokenResolver</span> outOfBandTokenResolver)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> authenticator = <span style="color:blue;">base</span>.CreateSecurityTokenAuthenticator(tokenRequirement, <span style="color:blue;">out</span> outOfBandTokenResolver);</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">if</span> (authenticator <span style="color:blue;">is</span> <span style="color:#2b91af;">SamlSecurityTokenAuthenticator</span>)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">            <span style="color:blue;background:lime;">return</span><span style="background:lime;"> <span style="color:blue;">new</span> <span style="color:#2b91af;">SamlSecurityTokenAuthenticatorEx</span>((<span style="color:#2b91af;">SamlSecurityTokenAuthenticator</span>)authenticator);</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> authenticator;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;">}</span></p>
+<p class="MsoNormal">Inside SamlSecurityTokenAuthenticatorEx, I’m simply creating an additional token caching policy and   adding it to the collection of policies created by default SAML token authenticator.</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">SamlSecurityTokenAuthenticatorEx</span> : <span style="color:#2b91af;">SamlSecurityTokenAuthenticator</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:#2b91af;">SamlSecurityTokenAuthenticator</span> wrapped;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> SamlSecurityTokenAuthenticatorEx(<span style="color:#2b91af;">SamlSecurityTokenAuthenticator</span> wrapped)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        : <span style="color:blue;">base</span>(<span style="color:blue;">new</span> <span style="color:#2b91af;">List</span>&lt;<span style="color:#2b91af;">SecurityTokenAuthenticator</span>&gt;())</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">this</span>.wrapped = wrapped;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ReadOnlyCollection</span>&lt;<span style="color:#2b91af;">IAuthorizationPolicy</span>&gt; ValidateTokenCore(<span style="color:#2b91af;">SecurityToken</span> token)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> orignalPolicies = wrapped.ValidateToken(token);</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:#2b91af;">List</span>&lt;<span style="color:#2b91af;">IAuthorizationPolicy</span>&gt; finalPolicies = <span style="color:blue;">new</span> <span style="color:#2b91af;">List</span>&lt;<span style="color:#2b91af;">IAuthorizationPolicy</span>&gt;(orignalPolicies);</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="background:lime;">finalPolicies.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">SamlTokenCachingPolicy</span>((<span style="color:#2b91af;">SamlSecurityToken</span>)token));</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> finalPolicies.AsReadOnly();</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;">}</span></p>
+<p class="MsoNormal">My <span style="font-size:8pt;line-height:115%;font-family:&quot;color:#2b91af;">SamlTokenCachingPolicy </span>is just a wrapped around the cached token.</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">SamlTokenCachingPolicy</span> : <span style="color:#2b91af;">IAuthorizationPolicy</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">const</span> <span style="color:blue;">string</span> PolicyID = <span style="color:#a31515;">"{32835E28-3ED4-42d4-A2EA-FA71E13AF51F}"</span>;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> SamlTokenCachingPolicy(<span style="color:#2b91af;">SamlSecurityToken</span> token)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">this</span>.IncommingSamlToken = token;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">bool</span> Evaluate(<span style="color:#2b91af;">EvaluationContext</span> evaluationContext, <span style="color:blue;">ref</span> <span style="color:blue;">object</span> state)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:#2b91af;">ClaimSet</span> Issuer</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">get</span> { <span style="color:blue;">throw</span> <span style="color:blue;">new</span> System.<span style="color:#2b91af;">NotImplementedException</span>(); }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">string</span> Id</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">get</span> { <span style="color:blue;">return</span> PolicyID; }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:#2b91af;">SamlSecurityToken</span> IncommingSamlToken { <span style="color:blue;">get</span>; <span style="color:blue;">private</span> <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;">}</span></p>
+<p class="MsoNormal">IAuthorizationPolicy model nicely aligns with WCF security framework (so I have used it here). If you are not comfortable with this approach, you could get the same results by choosing a different caching strategy.</p>
+<p class="MsoNormal">Inside your service method you can get hold of the incoming SAML token using following piece of code.</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">[<span style="color:#2b91af;">ServiceBehavior</span>(AddressFilterMode = <span style="color:#2b91af;">AddressFilterMode</span>.Prefix)]</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;color:blue;">public</span><span style="font-size:8pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">EchoService</span> : <span style="color:#2b91af;">IEchoService</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">string</span> Echo(<span style="color:blue;">string</span> input)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:green;">// Get token from incoming security context..</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> samlToken = <span style="color:#2b91af;background:yellow;">OperationContext</span><span style="background:yellow;">.Current.ServiceSecurityContext.GetIncommingSamlToken();</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:8pt;line-height:115%;font-family:&quot;">}</span></p>
+<p class="MsoNormal"><strong>GetIncommingSamlToken </strong>is again an extension which extracts the actual token from my custom AuthorizationPolicy(<span style="font-size:8pt;line-height:115%;font-family:&quot;color:#2b91af;">SamlTokenCachingPolicy)</span>.</p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">static</span> <span style="color:#2b91af;">SamlSecurityToken</span> GetIncommingSamlToken(<span style="color:blue;">this</span> <span style="color:#2b91af;">ServiceSecurityContext</span> source)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">var</span> policy = <span style="background:yellow;">source.AuthorizationPolicies.OfType&lt;<span style="color:#2b91af;">SamlTokenCachingPolicy</span>&gt;().FirstOrDefault();</span></span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;background:yellow;">        <span style="color:blue;">if</span> (policy != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;background:yellow;">            <span style="color:blue;">return</span> policy.IncommingSamlToken;</span><span style="font-size:8pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">        <span style="color:blue;">return</span> <span style="color:blue;">null</span>;</span></p>
+<p class="MsoNormal" style="margin-bottom:.0001pt;line-height:normal;"><span style="font-size:8pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal">Oh, this post is already way too long. Probably next time I will show you, how to pass this token to backend services (sharing the same certificate).</p>
+</div>

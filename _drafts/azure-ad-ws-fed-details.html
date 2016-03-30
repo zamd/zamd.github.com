@@ -1,0 +1,127 @@
+---
+layout: post
+title: Azure AD WS-Fed details
+date: 
+type: post
+published: false
+status: draft
+categories: []
+tags: []
+meta:
+  _edit_last: '13661190'
+  geo_public: '0'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<ol>
+<li>Create a basic STS or use &amp; modify the lovely thinktecture IdentityServer v2.</li>
+<li>Add a Relying Party Trust to 'urn:federation:MicrosoftOnline' which is the unique identifier used by of Azure AD for federation.</li>
+<li>Establish a trust relationship between your STS and Azure AD using the <b>Set-MsolDomainAuthentication</b> cmdlet. This is how my trust relationship look like:</li>
+</ol>
+<p><a href="http://zuahmed.files.wordpress.com/2013/04/office365federationworking.png"><img style="display:inline;border:0;" title="Office365 Federation Working" src="{{ site.baseurl }}/assets/office365federationworking_thumb.png" alt="Office365 Federation Working" width="451" height="484" border="0" /></a></p>
+<p>4. The IssuerUri MUST match the issuer URI of SAML assertion.</p>
+<p>&lt;saml:Assertion MajorVersion="1" MinorVersion="1" AssertionID="_3fc6835d-4e51-4d60-a501-b376802e16ac" <span style="text-decoration:underline;"><span style="color:#800000;font-size:medium;">Issuer="</span></span><a href="https://sts.bccoss.com/issue/wsfed&quot;"><span style="text-decoration:underline;"><span style="color:#800000;font-size:medium;">https://sts.bccoss.com/issue/wsfed"</span></span></a> IssueInstant="2013-04-24T22:26:08.111Z" xmlns:saml="urn:oasis:names:tc:SAML:1.0:assertion"&gt;<br />
+&lt;saml:Conditions NotBefore="2013-04-24T22:26:08.021Z" NotOnOrAfter="2013-08-02T22:26:08.021Z"&gt;<br />
+&lt;saml:AudienceRestrictionCondition&gt;<br />
+&lt;saml:Audience&gt;urn:federation:MicrosoftOnline&lt;/saml:Audience&gt;<br />
+&lt;/saml:AudienceRestrictionCondition&gt;<br />
+&lt;/saml:Conditions&gt;<br />
+&lt;saml:AttributeStatement&gt;<br />
+&lt;saml:Subject&gt;<br />
+&lt;saml:NameIdentifier Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"&gt;7960192&lt;/saml:NameIdentifier&gt;<br />
+&lt;saml:SubjectConfirmation&gt;<br />
+&lt;saml:ConfirmationMethod&gt;urn:oasis:names:tc:SAML:1.0:cm:bearer&lt;/saml:ConfirmationMethod&gt;<br />
+&lt;/saml:SubjectConfirmation&gt;<br />
+&lt;/saml:Subject&gt;<br />
+&lt;saml:Attribute AttributeName="name" AttributeNamespace="<a href="http://schemas.xmlsoap.org/ws/2005/05/identity/claims&quot;">http://schemas.xmlsoap.org/ws/2005/05/identity/claims"</a>&gt;<br />
+&lt;saml:AttributeValue&gt;zamd@bccoss.com&lt;/saml:AttributeValue&gt;<br />
+&lt;/saml:Attribute&gt;<br />
+&lt;saml:Attribute AttributeName="ImmutableID" AttributeNamespace="<a href="http://schemas.microsoft.com/LiveID/Federation/2008/05&quot;">http://schemas.microsoft.com/LiveID/Federation/2008/05"</a>&gt;<br />
+&lt;saml:AttributeValue&gt;7960192&lt;/saml:AttributeValue&gt;<br />
+&lt;/saml:Attribute&gt;<br />
+&lt;saml:Attribute AttributeName="UPN" AttributeNamespace="<a href="http://schemas.xmlsoap.org/claims&quot;">http://schemas.xmlsoap.org/claims"</a>&gt;<br />
+&lt;saml:AttributeValue&gt;zulfiqar@bccoss.com&lt;/saml:AttributeValue&gt;<br />
+&lt;/saml:Attribute&gt;<br />
+&lt;/saml:AttributeStatement&gt;<br />
+&lt;saml:AuthenticationStatement AuthenticationMethod="urn:oasis:names:tc:SAML:1.0:am:password" AuthenticationInstant="2013-04-24T22:26:07.764Z"&gt;<br />
+&lt;saml:Subject&gt;<br />
+&lt;saml:NameIdentifier Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"&gt;7960192&lt;/saml:NameIdentifier&gt;<br />
+&lt;saml:SubjectConfirmation&gt;<br />
+&lt;saml:ConfirmationMethod&gt;urn:oasis:names:tc:SAML:1.0:cm:bearer&lt;/saml:ConfirmationMethod&gt;<br />
+&lt;/saml:SubjectConfirmation&gt;<br />
+&lt;/saml:Subject&gt;<br />
+&lt;/saml:AuthenticationStatement&gt;<br />
+&lt;Signature xmlns="<a href="http://www.w3.org/2000/09/xmldsig#&quot;">http://www.w3.org/2000/09/xmldsig#"</a>&gt;<br />
+&lt;SignedInfo&gt;<br />
+&lt;CanonicalizationMethod Algorithm="<a href="http://www.w3.org/2001/10/xml-exc-c14n#&quot;">http://www.w3.org/2001/10/xml-exc-c14n#"</a> /&gt;<br />
+&lt;SignatureMethod Algorithm="<a href="http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;">http://www.w3.org/2000/09/xmldsig#rsa-sha1"</a> /&gt;<br />
+&lt;Reference URI="#_3fc6835d-4e51-4d60-a501-b376802e16ac"&gt;<br />
+&lt;Transforms&gt;<br />
+&lt;Transform Algorithm="<a href="http://www.w3.org/2000/09/xmldsig#enveloped-signature&quot;">http://www.w3.org/2000/09/xmldsig#enveloped-signature"</a> /&gt;<br />
+&lt;Transform Algorithm="<a href="http://www.w3.org/2001/10/xml-exc-c14n#&quot;">http://www.w3.org/2001/10/xml-exc-c14n#"</a> /&gt;<br />
+&lt;/Transforms&gt;<br />
+&lt;DigestMethod Algorithm="<a href="http://www.w3.org/2000/09/xmldsig#sha1&quot;">http://www.w3.org/2000/09/xmldsig#sha1"</a> /&gt;<br />
+&lt;DigestValue&gt;TG8wC0RTSS8/SiIEvEPuducPTRk=&lt;/DigestValue&gt;<br />
+&lt;/Reference&gt;<br />
+&lt;/SignedInfo&gt;<br />
+&lt;/saml:Assertion&gt;</p>
+<p>5. The protocol should be <b>WS-Federation</b> for browser-based SSO.</p>
+<p>6. Following claims must be included in the issued tokens:</p>
+<ul>
+<li><a name="CreatingaConnectiontoOffice365-9000121"></a><a href="http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID">http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID</a></li>
+<li><a href="http://schemas.xmlsoap.org/claims/UPN">http://schemas.xmlsoap.org/claims/UPN</a></li>
+<li><a name="CreatingaConnectiontoOffice365-9000123"></a>The UPN must also be set as a name identifier.</li>
+<li><a name="CreatingaConnectiontoOffice365-9000124"></a>The Office 365 endpoint where WS-Federation messages MUST be sent is:</li>
+<li>The signing algorithm MUST be <b>SHA-1</b>.</li>
+<li>The token MUST be sent to: https://login.microsoftonline.com/login.srf</li>
+</ul>
+<p>I created a FederatedPartnerRepository and added</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:28bfbcbb-0366-496c-b5a6-bd7ce4d02e01" class="wlWriterEditableSmartContent" style="float:none;margin:0;display:inline;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#fff;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;">
+<li><span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#0000ff;">class</span><span style="background:#ffffff;color:#2b91af;">DbFederatedPartnerRepository</span><span style="background:#ffffff;color:#000000;"> : </span><span style="background:#ffffff;color:#2b91af;">FederatedPartnerRepository</span></li>
+<li style="background:#f3f3f3;"><span style="background:#ffffff;color:#000000;">{</span></li>
+<li>    <span style="background:#ffffff;color:#0000ff;">private</span><span style="background:#ffffff;color:#0000ff;">readonly</span><span style="background:#ffffff;color:#2b91af;">IEnumerable</span><span style="background:#ffffff;color:#000000;">&lt;</span><span style="background:#ffffff;color:#2b91af;">FederatedPartner</span><span style="background:#ffffff;color:#000000;">&gt; _registeredPartners;</span></li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#000000;"> DbFederatedPartnerRepository()</span></li>
+<li style="background:#f3f3f3;">    <span style="background:#ffffff;color:#000000;">{</span></li>
+<li>        <span style="background:#ffffff;color:#000000;">_registeredPartners = LoadDefault();</span></li>
+<li style="background:#f3f3f3;">    <span style="background:#ffffff;color:#000000;">}</span></li>
+<li></li>
+<li style="background:#f3f3f3;">    <span style="background:#ffffff;color:#0000ff;">public</span><span style="background:#ffffff;color:#0000ff;">override</span><span style="background:#ffffff;color:#2b91af;">FederatedPartner</span><span style="background:#ffffff;color:#000000;"> GetPartner(</span><span style="background:#ffffff;color:#2b91af;">Uri</span><span style="background:#ffffff;color:#000000;"> realm)</span></li>
+<li>    <span style="background:#ffffff;color:#000000;">{</span></li>
+<li style="background:#f3f3f3;">        <span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> fp = _registeredPartners.FirstOrDefault(u =&gt; u.Address.IsBaseOf(realm));</span></li>
+<li>        <span style="background:#ffffff;color:#0000ff;">if</span><span style="background:#ffffff;color:#000000;"> (fp == </span><span style="background:#ffffff;color:#0000ff;">null</span><span style="background:#ffffff;color:#000000;">)</span></li>
+<li style="background:#f3f3f3;">            <span style="background:#ffffff;color:#0000ff;">throw</span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">InvalidOperationException</span><span style="background:#ffffff;color:#000000;">(</span></li>
+<li>                <span style="background:#ffffff;color:#0000ff;">string</span><span style="background:#ffffff;color:#000000;">.Format(</span><span style="background:#ffffff;color:#2b91af;">SR</span><span style="background:#ffffff;color:#000000;">.NoFederatedPartnerFound, realm, realm));</span></li>
+<li style="background:#f3f3f3;"></li>
+<li>        <span style="background:#ffffff;color:#0000ff;">return</span><span style="background:#ffffff;color:#000000;"> fp;</span></li>
+<li style="background:#f3f3f3;">    <span style="background:#ffffff;color:#000000;">}</span></li>
+<li></li>
+<li style="background:#f3f3f3;">    <span style="background:#ffffff;color:#0000ff;">private</span><span style="background:#ffffff;color:#0000ff;">static</span><span style="background:#ffffff;color:#2b91af;">IEnumerable</span><span style="background:#ffffff;color:#000000;">&lt;</span><span style="background:#ffffff;color:#2b91af;">FederatedPartner</span><span style="background:#ffffff;color:#000000;">&gt; LoadDefault()</span></li>
+<li>    <span style="background:#ffffff;color:#000000;">{</span></li>
+<li style="background:#f3f3f3;"></li>
+<li>        <span style="background:#ffffff;color:#0000ff;">var</span><span style="background:#ffffff;color:#000000;"> parterns = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">List</span><span style="background:#ffffff;color:#000000;">&lt;</span><span style="background:#ffffff;color:#2b91af;">FederatedPartner</span><span style="background:#ffffff;color:#000000;">&gt;</span></li>
+<li style="background:#f3f3f3;">                           <span style="background:#ffffff;color:#000000;">{</span></li>
+<li>                               <span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">FederatedPartner</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#a31515;">"http://pilesoft.com/"</span><span style="background:#ffffff;color:#000000;">) </span><span style="background:#ffffff;color:#008000;">//Sitefinity</span></li>
+<li style="background:#f3f3f3;">                                   <span style="background:#ffffff;color:#000000;">{</span></li>
+<li>                                       <span style="background:#ffffff;color:#000000;">ClaimsProvider = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">DbClaimsProvider</span><span style="background:#ffffff;color:#000000;">()</span></li>
+<li style="background:#f3f3f3;">                                   <span style="background:#ffffff;color:#000000;">},</span></li>
+<li></li>
+<li style="background:#f3f3f3;">                               <span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">FederatedPartner</span><span style="background:#ffffff;color:#000000;">(</span><span style="background:#ffffff;color:#a31515;">"urn:federation:MicrosoftOnline"</span><span style="background:#ffffff;color:#000000;">)</span></li>
+<li>                                   <span style="background:#ffffff;color:#000000;">{</span></li>
+<li style="background:#f3f3f3;">                                       <span style="background:#ffffff;color:#000000;">ClaimsProvider = </span><span style="background:#ffffff;color:#0000ff;">new</span><span style="background:#ffffff;color:#2b91af;">AzureAdClaimsProvider</span><span style="background:#ffffff;color:#000000;">()</span></li>
+<li>                                   <span style="background:#ffffff;color:#000000;">}</span></li>
+<li style="background:#f3f3f3;">                           <span style="background:#ffffff;color:#000000;">};</span></li>
+<li>        <span style="background:#ffffff;color:#0000ff;">return</span><span style="background:#ffffff;color:#000000;"> parterns;</span></li>
+<li style="background:#f3f3f3;">    <span style="background:#ffffff;color:#000000;">}</span></li>
+<li><span style="background:#ffffff;color:#000000;">}</span></li>
+</ol>
+</div>
+</div>
+</div>

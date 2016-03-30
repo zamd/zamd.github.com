@@ -1,0 +1,24 @@
+---
+layout: post
+title: Using Simple Web Token (SWT) with WIF
+date: 2011-02-08 19:46:00.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WIF
+- Windows Azure AppFabric
+tags: []
+meta:
+  _oembed_3938c30eb81cfa3fa2e95608209d3bc9: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>SAML 1.1/SAML 2.0 is the default token format when using ACS as the authentication service for your website. In this model, your website talks to ACS using WS-Federation protocol and what it normally gets back is a Saml token. This scenarios is fairly straight-forward as WIF natively supports WS-Federation protocol &amp; SAML1.1/SAML 2.0 token formats. </p>
+<p>There are cases where you might want to return a Simple Web Tokens (SWT) after a successful authentication. For example, you might want to use this same SWT (available as a bootstrap token) to call other downstream REST/OData services as depicted in the following diagram. </p>
+<p><a href="http://zuahmed.files.wordpress.com/2011/02/image9.png"><img style="background-image:none;padding-left:0;padding-right:0;display:inline;padding-top:0;border-width:0;margin:5px;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb9.png" width="1024" height="606" /></a></p>
+<p>ACS fully supports returning an SWT token after a successfully WS-Fed authentication but WIF currently doesn’t support SWT tokens. You would have to write a custom Security Token Handler for WIF to process SWT tokens coming back to your website. I have created some extensions which enables this and other OAuth WRAP related scenarios. Feel free to <a href="http://cid-724b6fcd63a8c1ac.office.live.com/self.aspx/zamd.net/WIFBasedOAuthWrapIssuer.zip">download the code</a> from my SkyDrive.</p>

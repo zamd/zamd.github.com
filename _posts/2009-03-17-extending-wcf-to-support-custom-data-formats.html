@@ -1,0 +1,444 @@
+---
+layout: post
+title: Extending WCF to support custom data formats
+date: 2009-03-17 12:25:03.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Article
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_73e9bf8f14adc949ea3361f5c72d7983: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p><span class="MsoHyperlink"><a href="# Toc225055897">Overview</a></span></p>
+<div class="Section1">
+<p class="MsoToc1"><span class="MsoHyperlink"><a href="# Toc225055898">Channel model customization</a></span><span style="line-height:115%;text-transform:none;font-size:11pt;font-weight:normal;"></span></p>
+<p class="MsoToc1"><span class="MsoHyperlink"><a href="# Toc225055899">Dispatcher customizations</a></span><span style="line-height:115%;text-transform:none;font-size:11pt;font-weight:normal;"></span></p>
+<p class="MsoToc1"><span class="MsoHyperlink"><a href="# Toc225055900">Putting everything together</a></span><span style="line-height:115%;text-transform:none;font-size:11pt;font-weight:normal;"></span></p>
+<p class="MsoToc1"><span class="MsoHyperlink"><a href="# Toc225055901">Wrap-up</a></span>&nbsp;</p>
+<p class="MsoToc1"><a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/WCF%20Extensibility.pdf">Download PDF copy</a></p>
+<h1><a name=" Toc225055897"><font size="4">Overview</font></a></h1>
+<p class="MsoNormal">WCF is a highly extensible framework. If you are familiar with WCF you would be happy to know that all of WCF programming model is built on this extensibility model. Things like Instancing, Concurrency Behaviours etc are all built by levering the WCF extensibility model.</p>
+<p class="MsoNormal">In this article, I will show a how to extend WCF to support custom data formats.&nbsp; By using such techniques you can bring any data format into WCF programming model which a huge powerful thing. </p>
+<p class="MsoNormal">So here is the data format which I want to bring in to WCF programming model. The ultimate goal is: “If I post following XML to a service endpoint, a method in service class should be called and all this information should be made available to that method in a typed fashion.”</p>
+<p class="MsoNormal">Input xml is just a usual XML infoset with following two differences:</p>
+<ul>
+<li>
+<div style="text-indent:-18pt;margin-right:0;" class="MsoListParagraphCxSpFirst"><span style="font-family:Symbol;"><span><span style="font:7pt 'Times New Roman';">&nbsp; </span></span></span>It is length prefixed (which makes it unusable in WCF)</div>
+</li>
+<li>
+<div style="text-indent:-18pt;margin-right:0;" class="MsoListParagraphCxSpLast"><span style="font-family:Symbol;"><span><span style="font:7pt 'Times New Roman';">&nbsp;</span></span></span>Dispatch information (highlighted) is embedded somewhere in the message rather than in a SOAP Action header. </div>
+</li>
+</ul>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">2922</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&lt;</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">cupps</span><span style="font-family:'Courier New';color:blue;font-size:10pt;"> </span><span style="font-family:'Courier New';color:red;font-size:10pt;">xmlns</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">IATA-CUPPS/1.0</span>"<span style="color:blue;"> </span><span style="color:red;">messageID</span><span style="color:blue;">=</span>"<span style="color:blue;">1</span>"<span style="color:blue;"> </span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family:'Courier New';color:red;font-size:10pt;">xmlns:xsi</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">http://www.w3.org/2001/XMLSchema-instance</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:red;font-size:10pt;">xsi:schemaLocation</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">IATA-CUPPS/1.0..\cupps-v1.0.xsd</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family:'Courier New';color:red;font-size:10pt;">messageName</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="background:yellow;color:blue;">authenticateRequest</span>"<span style="color:blue;">&gt;</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp; &lt;</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">authenticateRequest</span><span style="font-family:'Courier New';color:blue;font-size:10pt;"> </span><span style="font-family:'Courier New';color:red;font-size:10pt;">airline</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">JL</span>"<span style="color:blue;"> </span><span style="color:red;">eventToken</span><span style="color:blue;">=</span>"S<span style="color:blue;">3M6CJ8L3J9M1C5X</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family:'Courier New';color:red;font-size:10pt;">platformDefinedParameter</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">ZBKD70DF3K:25324;asd=</span>"<span style="color:blue;">&gt;</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">applicationList</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">&gt;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">application</span><span style="font-family:'Courier New';color:blue;font-size:10pt;"> </span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationName</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">ABCMS</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;</span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationVersion</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">01.02</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">application</span><span style="font-family:'Courier New';color:blue;font-size:10pt;"> </span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationName</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">WOLMO</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationVersion</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">02.03</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationData</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">printerinterface</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">application</span><span style="font-family:'Courier New';color:blue;font-size:10pt;"> </span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationName</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">JLABC</span>"</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family:'Courier New';color:red;font-size:10pt;">applicationVersion</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">=</span><span style="font-family:'Courier New';font-size:10pt;">"<span style="color:blue;">01.02</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;&nbsp;&nbsp; &lt;/</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">applicationList</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">&gt;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp; &lt;/</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">authenticateRequest</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">&gt;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&lt;/</span><span style="font-family:'Courier New';color:#a31515;font-size:10pt;">cupps</span><span style="font-family:'Courier New';color:blue;font-size:10pt;">&gt;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">First of all let’s list down the requirement for our customized solution. </p>
+<ol style="margin-right:0;"> </ol>
+<ol>
+<li>
+<div style="line-height:normal;text-indent:-18pt;margin-bottom:0;" class="MsoListParagraphCxSpFirst" align="left">We need to support above format over Http transport.</div>
+</li>
+<li>
+<div style="line-height:normal;text-indent:-18pt;margin-bottom:0;" class="MsoListParagraphCxSpMiddle" align="left">Length information needs to be provided to WCF methods in an <b><i>out of band</i></b> manner.</div>
+</li>
+<li>
+<div style="line-height:normal;text-indent:-18pt;margin-bottom:0;" class="MsoListParagraphCxSpMiddle" align="left">Information from wrapper element (cupps in this case) MUST be provided to service method in an <b><i>out of band</i></b> manner.</div>
+</li>
+<li>
+<div style="line-height:normal;text-indent:-18pt;margin-bottom:0;" class="MsoListParagraphCxSpMiddle" align="left">We want to extract first element and pass it to the service method using method’s signature.</div>
+</li>
+<li>
+<div style="line-height:normal;text-indent:-18pt;margin-bottom:0;" class="MsoListParagraphCxSpMiddle" align="left">We want to do operation dispatch using the <span style="font-family:'Courier New';color:red;font-size:10pt;">messageName </span>attribute of the root element.</div>
+</li>
+<li>
+<div style="line-height:normal;text-indent:-18pt;margin-bottom:0;" class="MsoListParagraphCxSpLast" align="left">We want to support same contract to both proprietary clients and standard SOAP clients.</div>
+</li>
+</ol>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+<p class="MsoNormal">By default this input data format (length prefixed) cannot be processed by WCF. So how should we extend WCF to support this format? Do we need a custom channel for this?</p>
+<h1><a name=" Toc225055898"><font size="4">Channel model customization</font></a></h1>
+<p class="MsoNormal">&nbsp;The guideline is, if your input data has some obvious structure on the write you usually don’t a need a channel. In my case, input is standard XML (with a well defined structure) however it is length prefixed which makes it unusable in WCF as is. </p>
+<p class="MsoNormal">Now inside the WCF pipeline (both Service Model &amp; Channel Stack) data flows as a Message object while on the wire, data flows as a sequence of bytes. Encoder is a WCF component which transforms a Message object into a byte stream and vice versa.&nbsp; Out of box WCF provides following 4 encoders:</p>
+<ul>
+<li>
+<div style="text-indent:-18pt;" class="MsoListParagraphCxSpFirst"><b>Text</b>: Uses text based (UTF-8 by default) XML encoding.</div>
+</li>
+<li>
+<div style="text-indent:-18pt;" class="MsoListParagraphCxSpMiddle"><span style="font-family:Symbol;"><span><span style="font:7pt 'Times New Roman';">&nbsp;</span></span></span><b>MTOM</b>: An interoperable encoder which supports efficient binary data transmission. </div>
+</li>
+<li>
+<div style="text-indent:-18pt;" class="MsoListParagraphCxSpMiddle"><b>Binary</b>: A highly optimized dictionary based WCF specific encoder.</div>
+</li>
+<li>
+<div style="text-indent:-18pt;" class="MsoListParagraphCxSpLast"><span style="font-family:Symbol;"><span><span style="font:7pt 'Times New Roman';">&nbsp;</span></span></span><b>Web</b>: Added in .NET Framework 3.5 and support JSON (JavaScript Object Notation) and POX (Plain-Old XML) encoding. </div>
+</li>
+</ul>
+<p class="MsoNormal">None of these encoders understands our length prefixed data format. But if I strip the length out of input xml, I will get a regular text encoded XML document which can easily be processed by a Text encoder.&nbsp; So to bring this custom format into WCF model, first thing I have to do is to a new custom encoder. This custom encoder will simply be a wrapper around an existing encoder (Text). It will extract and remove the length from the input byte stream and then simply delegates the actual reading to a wrapped encoder.</p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">class</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:#2b91af;">LengthPrefixedMessageEncoder</span> : <span style="color:#2b91af;">MessageEncoder</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">MessageEncoder</span> orignalEncoder;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> LengthPrefixedMessageEncoder(<span style="color:#2b91af;">MessageEncoder</span> orignalEncoder){</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.orignalEncoder = orignalEncoder;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">Message</span> ReadMessage(<span style="color:#2b91af;">ArraySegment</span>&lt;<span style="color:blue;">byte</span>&gt; buffer,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">BufferManager</span> bufferManager, <span style="color:blue;">string</span> contentType)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">int</span> i = 0;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i = contentType.ToLower().IndexOf(<span style="color:#a31515;">"charset"</span>);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> charset = <span style="color:#a31515;">"utf-8"</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<span style="color:blue;">if</span> (i &gt; 0){</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charset = contentType.Substring(i);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charset = charset.Split(<span style="color:#a31515;">'='</span>)[1];</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> encoding = <span style="color:#2b91af;">Encoding</span>.GetEncoding(charset);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">int</span> length = 0;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">for</span> (i = 0; i &lt; buffer.Count; i++)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> ((buffer.Array[i] == 13 &amp;&amp; buffer.Array[i + 1] == 10) || <span style="color:green;"></span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (buffer.Array[i] == 10 &amp;&amp; buffer.Array[i + 1] == 13))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">break</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp; <span style="color:blue;">if</span> (i &lt; buffer.Count){</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> strLength = encoding.GetString(buffer.Array.Take(i).ToArray());</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (<span style="color:blue;">int</span>.TryParse(strLength, <span style="color:blue;">out</span> length{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buffer = <span style="color:blue;">new</span> <span style="color:#2b91af;">ArraySegment</span>&lt;<span style="color:blue;">byte</span>&gt;(buffer.Array,i + 2,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buffer.Count - (i + 2));</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> messsage = orignalEncoder.ReadMessage(buffer, bufferManager, contentType);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> property = <span style="color:blue;">new</span> <span style="color:#2b91af;">XmlRequestMessageProperty</span>();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; property.PrefixedLength = length;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; messsage.Properties.Add(<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name, property);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> messsage;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> orignalEncoder.ReadMessage(buffer, bufferManager,contentType);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">Now with our custom encoder plugged into the pipeline, this is how the server side runtime will look like.</p>
+<p style="page-break-after:avoid;text-align:center;" class="MsoNormal" align="center"><img border="0" src="{{ site.baseurl }}/assets/image001123.png" width="237" height="317" /></p>
+<p style="text-align:center;" class="MsoCaption" align="center">Figure 1: Extended runtime</p>
+<p class="MsoNormal">A byte stream will be read by transport channel (Http) and is handed over to the encoder. In this case our custom encoder will be called which simply reads the length out of the byte stream and delegates the actual reading to a wrapped encoder which creates the Message object out of the remaining byte stream.</p>
+<p class="MsoNormal">&nbsp;This Message object then flow up the WCF channel stack and will reach the Dispatcher. Let’s see what’s happen in the dispatcher and what customization are required to route this message to appropriate endpoint, contract and ultimately to the correct method in our service implementation.</p>
+<h1><a name=" Toc225055899"><font size="4">Dispatcher customizations</font></a></h1>
+<p class="MsoNormal">The very step done in the dispatcher is to find out if the incoming message matches to any endpoint. This is done using two filters: <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.dispatcher.endpointdispatcher.addressfilter.aspx">AddressFilter</a> &amp; <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.dispatcher.endpointdispatcher.contractfilter.aspx">ContractFilter</a>. </p>
+<p class="MsoNormal">AddressFilter determines whether the address on the incoming message matches to any of the endpoint(s) addresses.</p>
+<p class="MsoNormal">&nbsp;ContactFilter determines whether this message is as per the contract exposed on the matched endpoint. By default this filter checks if the SOAP Action header of incoming message matches to any of the service operations.</p>
+<p class="MsoNormal">Now in my case – there is no SOAP action header either at the WS-Addressing level or Http level. So the first customization I needed is a custom MessageFilter which will use some other marker inside the message (in my case <b>messageName</b> attribute of root element) for its decision.</p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">class</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:#2b91af;">CutomAttributeMessageFilter</span> : <span style="color:#2b91af;">MessageFilter</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">XName</span> attributeName;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> xmlns;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> CutomAttributeMessageFilter(<span style="color:blue;">string</span> xmlns, <span style="color:blue;">string</span> attributeName)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.attributeName = attributeName;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.xmlns = xmlns;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:blue;">bool</span> Match(<span style="color:#2b91af;">Message</span> message)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">XmlRequestMessageProperty</span> property = <span style="color:blue;">null</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> msgElement = <span style="color:#2b91af;">XElement</span>.Parse(message.ToString()) <span style="color:blue;">as</span> <span style="color:#2b91af;">XElement</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> ( message.Properties.Keys.Contains(<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name))</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;property = message.Properties[<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name] </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">as</span> <span style="color:#2b91af;">XmlRequestMessageProperty</span>; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (property == <span style="color:blue;">null</span>)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; property = <span style="color:blue;">new</span> <span style="color:#2b91af;">XmlRequestMessageProperty</span>();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; message.Properties.Add(<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name, property);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; msgElement.Attributes().Where(a =&gt;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ((a.Name.Namespace.NamespaceName == <span style="color:#a31515;">""</span> &amp;&amp;&nbsp;&nbsp;&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; msgElement.GetDefaultNamespace().NamespaceName == xmlns) ||</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (a.Name.Namespace.NamespaceName == xmlns)) &amp;&amp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; !a.IsNamespaceDeclaration).All(a =&gt;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; property.Parameters.Add(a.Name.LocalName, a.Value);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">true</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">try</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> operationName = msgElement.Attribute(attributeName).Value;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> actualMsgElement = msgElement.Elements().First();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> fixedMsg = <span style="color:#2b91af;">Message</span>.CreateMessage( message.Version,&nbsp;&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; message.Headers.Action, actualMsgElement.CreateReader());</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fixedMsg.Properties.CopyProperties(message.Properties);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; property.Message = fixedMsg;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; property.Operation = operationName;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">catch</span> (<span style="color:#2b91af;">Exception</span> ex)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">Exception</span>(<span style="color:#a31515;">"Filter mismatch..."</span>, ex);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">true</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:blue;">bool</span> Match(<span style="color:#2b91af;">MessageBuffer</span> buffer)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">this</span>.Match(buffer.CreateMessage());</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">Now I have done quite a lot of work here. Let me explain that. First of all I parsed the message into an XElement so that I process it using Linq to XML API. </p>
+<p class="MsoNormal">I created an instance of custom message property so that I can flow some of the data in an <b><i>out of band </i></b>manner to the service operation. I then extracted some information from the message and copied it into this custom property object.</p>
+<p class="MsoNormal">After extracting all the contextual information from root element – I simply created a new message containing the actual business information which needs to be communicated to a service method via its method signature. </p>
+<p class="MsoNormal">If the incoming message satisfies the Address &amp; Contract filters, message processing continues with the execution of WCF dispatch pipeline. Following are major extensibility points exposed on dispatch pipeline.</p>
+<p style="page-break-after:avoid;" class="MsoNormal"><img border="0" src="{{ site.baseurl }}/assets/image00212.png" width="603" height="214" /></p>
+<p class="MsoCaption">Figure 2: Dispatch pipeline</p>
+<p class="MsoNormal"><a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.dispatcher.idispatchoperationselector.aspx">OperationSelector</a> component is responsible for selecting a service operation based on incoming message. By default WCF use SOAP Action header for this selection however in my case this selection will be done based on a custom attribute. So I need to customize this functionality. </p>
+<p class="MsoNormal">I have already done all the heavily lifting in the filter so here I can simply reusing that information. </p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">class</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:#2b91af;">CustomAttributeOperationSelector</span> : <span style="color:#2b91af;">IDispatchOperationSelector</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> SelectOperation(<span style="color:blue;">ref</span> <span style="color:#2b91af;">Message</span> message)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> prop = message.Properties[<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name] <span style="color:blue;">as</span> <span style="color:#2b91af;">XmlRequestMessageProperty</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (prop == <span style="color:blue;">null</span>)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">Exception</span>(<span style="color:#a31515;">"Dispatch information missing..."</span>);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; message = prop.Message;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> prop.Operation;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">I simply returned an already computed operationName and also replaced the actual message to a rewritten one which is as per my service data contract.&nbsp; </p>
+<p class="MsoNormal">After the operation selection stage, message processing continues with an operation specific dispatch pipeline and first step performed in this pipeline is the transformation of message object into parameters required by that operation. Formatter is the WCF component which does this transformation.</p>
+<p class="MsoNormal">To enable deserialization of my custom XML into the objects required by the service method I have created a customized formatter. In my custom formatter, I am simply leveraging the Xml serializer to do the actual de-serialization. On the reply, I’m simply delegating the serialization work to the configured formatter (the default is based DataContractSerializer)</p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">class</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:#2b91af;">CustomizedXmlSerializerFormatter</span> : <span style="color:#2b91af;">IDispatchMessageFormatter</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">IDispatchMessageFormatter</span> orignal;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">OperationDescription</span> operationDescription;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> CustomizedXmlSerializerFormatter(<span style="color:#2b91af;">IDispatchMessageFormatter</span> orignal, <span style="color:#2b91af;">OperationDescription</span> operationDescription)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.orignal = orignal;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.operationDescription = operationDescription;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> DeserializeRequest(<span style="color:#2b91af;">Message</span> message, <span style="color:blue;">object</span>[] parameters)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (message.Properties.Keys.Contains(<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name))</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> inputMsg = operationDescription.Messages.First(md =&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md.Direction == <span style="color:#2b91af;">MessageDirection</span>.Input);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (inputMsg.Body.Parts.Count &gt; 1)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">Exception</span>(<span style="color:#a31515;">"Configured formatter only supports a single [XmlSerializable] input parameter."</span>);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">XmlSerializer</span> serializer = <span style="color:blue;">new</span> <span style="color:#2b91af;">XmlSerializer</span>(inputMsg.Body.Parts[0].Type);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parameters[0] = serializer.Deserialize(message.GetReaderAtBodyContents());</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; orignal.DeserializeRequest(message, parameters);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:#2b91af;">Message</span> SerializeReply(<span style="color:#2b91af;">MessageVersion</span> messageVersion, <span style="color:blue;">object</span>[] parameters, <span style="color:blue;">object</span> result){</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> orignal.SerializeReply(messageVersion, parameters, result);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">After this stage message flows through the rest of pipeline and ultimately reaches to a configured operation invoker, which invokes the operation on my configured service instance. </p>
+<p class="MsoNormal">Now let’s see how various bits &amp; pieces tie together. </p>
+<h1><a name=" Toc225055900"><font size="4">Putting everything together</font></a></h1>
+<p class="MsoNormal">If you have a standard WCF service contract then for every operation where you need this custom framework (custom de-serialization), you will use <span style="line-height:115%;font-family:'Courier New';color:#2b91af;font-size:10pt;">CustomizedXmlSerializerFormat </span>attribute. This attribute will simply replace the default formatter for the operation with my <span style="line-height:115%;font-family:'Courier New';color:#2b91af;font-size:10pt;">CustomizedXmlSerializerFormatter.</span></p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">[<span style="color:#2b91af;">ServiceContract</span>]</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">public</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:blue;">interface</span> <span style="color:#2b91af;">ICustomServiceContrat</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; [<span style="color:#2b91af;">OperationContract</span>(Name = <span style="color:#a31515;">"authenticateRequest"</span>)]</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; [<span style="color:#2b91af;">CustomizedXmlSerializerFormat</span>]</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> AuthenticateRequest(<span style="color:#2b91af;">AuthenticateRequest</span> request);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">Now from runtime perspective I need a custom endpoint behaviour for every endpoint on which I want to enable this custom dispatch functionality. This custom behaviour simply customizes some of the above extensibility points with my customized implementations.</p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">class</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:#2b91af;">ActionLessDispatchEndpointBehavior</span> : <span style="color:#2b91af;">IEndpointBehavior</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint,&nbsp; </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:#2b91af;font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; EndpointDispatcher</span><span style="font-family:'Courier New';font-size:10pt;"> endpointDispatcher)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; endpointDispatcher.ContractFilter = <span style="color:blue;">new</span> <span style="color:#2b91af;">CutomAttributeMessageFilter</span>(<span style="color:#a31515;">"IATA-CUPPS/1.0"</span>, <span style="color:#a31515;">"messageName"</span>);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; endpointDispatcher.DispatchRuntime.OperationSelector = <span style="color:blue;">new</span> <span style="color:#2b91af;">CustomAttributeOperationSelector</span>();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">foreach</span> (<span style="color:blue;">var</span> od <span style="color:blue;">in</span> endpoint.Contract.Operations)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> ca = od.SyncMethod.GetCustomAttributes(<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">CustomizedXmlSerializerFormat</span>), <span style="color:blue;">false</span>);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (ca.Length == 1)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; od.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">SerializerOperationBehavior</span>());</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (endpoint.Binding.MessageVersion != <span style="color:#2b91af;">MessageVersion</span>.None)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">Exception</span>(<span style="color:#a31515;">"SOAP is not supported. Please use MessageVersion.None"</span>);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">In <span style="line-height:115%;font-family:'Courier New';color:#2b91af;font-size:10pt;">SerializerOperationBehavior, </span>I’m simply replacing the MessageFormatter to my custom one.</p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">class</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:#2b91af;">SerializerOperationBehavior</span> : <span style="color:#2b91af;">IOperationBehavior</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">OperationDescription</span> </span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; operationDescription, <span style="color:#2b91af;">DispatchOperation</span> dispatchOperation)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dispatchOperation.Formatter = <span style="color:blue;">new</span> <span style="color:#2b91af;">CustomizedXmlSerializerFormatter</span>(dispatchOperation.Formatter, operationDescription);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">The final customization is to change the default encoder with our customized encoder. </p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">static</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:blue;">void</span> ConfigureEndpoint(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> be = endpoint.Binding.CreateBindingElements();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> orignal = be.Remove&lt;<span style="color:#2b91af;">MessageEncodingBindingElement</span>&gt;();</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (orignal != <span style="color:blue;">null</span>)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; be.Insert(be.Count - 1, <span style="color:blue;">new</span> <span style="color:#2b91af;">LengthPrefixedMessageEncodingBindingElement</span>(orignal));</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; endpoint.Binding = <span style="color:blue;">new</span> <span style="color:#2b91af;">CustomBinding</span>(be);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; endpoint.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">ActionLessDispatchEndpointBehavior</span>());</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">Both of these hooks (encoder &amp; endpoint behaviour) can be easily applied using the configuration file as well.</p>
+<p class="MsoNormal">Finally this is how a typical method implementation will look like. Contextual information is provided to the method via the incoming message properties while business information is provided via the parameter(s) of the method.</p>
+<table style="border-bottom:medium none;border-left:medium none;border-collapse:collapse;background:#cccccc;border-top:medium none;border-right:medium none;" class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="border-bottom:black 1pt solid;border-left:black 1pt solid;width:462.1pt;border-top:black 1pt solid;border-right:black 1pt solid;padding:0 5.4pt;" valign="top" width="616">
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';color:blue;font-size:10pt;">public</span><span style="font-family:'Courier New';font-size:10pt;"> <span style="color:blue;">string</span> AuthenticateRequest(<span style="color:#2b91af;">AuthenticateRequest</span> request)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">{</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">foreach</span>(<span style="color:blue;">var</span> app <span style="color:blue;">in</span> request.Applications)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"\tAppName={0}, AppVersion={1}, AppData={2}\n"</span>, app.Name,app.Version, app.Data);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:green;">// extract out of band information</span></span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (<span style="color:#2b91af;">OperationContext</span>.Current.IncomingMessageProperties.Keys.Contains(<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name))</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> xrmp = <span style="color:#2b91af;">OperationContext</span>.Current.IncomingMessageProperties[<span style="color:#2b91af;">XmlRequestMessageProperty</span>.Name] <span style="color:blue;">as</span> <span style="color:#2b91af;">XmlRequestMessageProperty</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">foreach</span>(<span style="color:blue;">var</span> de <span style="color:blue;">in</span> xrmp.Parameters)</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"\tName={0}, Value={1}"</span>, de.Key, de.Value);</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:#a31515;">"Done."</span>;</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal"><span style="font-family:'Courier New';font-size:10pt;">}</span></p>
+<p style="line-height:normal;margin-bottom:0;" class="MsoNormal">&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<h1><a name=" Toc225055901"><font size="4">Wrap-up</font></a></h1>
+<p class="MsoNormal">WCF is highly extensible messaging framework supporting a rich programming model. All of web programming model introduced in .NET Framework 3.5 is build using the same extensibility model. If you are still doing communication using some proprietary data format then you can use the techniques explained in this article to bring your proprietary format into the WCF programming model. </p>
+</div>
+<p><a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/WCF%20Extensibility.pdf">WCF Extensibility.pdf (828.21 KB)</a></p>

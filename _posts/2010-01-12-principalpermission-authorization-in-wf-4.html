@@ -1,0 +1,88 @@
+---
+layout: post
+title: PrincipalPermission Authorization in WF 4
+date: 2010-01-12 18:28:19.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">In <a href="http://zamd.net/2009/12/13/managing-operationcontext-in-wf-4/">last post</a>, I have shown you how to get hold of OperationContext when using messaging activities. Once you got hold of OperationContext, you can use it to perform many useful tasks and one of them is Authorization. Let’s start by defining a <em>Scope activity </em>to hook our <span class="apple-style-span"><span style="font-size:7pt;font-family:Arial,sans-serif;color:black;">IReceiveMessageCallback </span></span>implementation.<span class="apple-style-span"><span style="font-size:7pt;font-family:Arial,sans-serif;color:black;"> </span></span></p>
+<p class="MsoNormal"><span class="apple-style-span"><span style="font-size:7pt;font-family:Arial,sans-serif;color:black;"> </span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    [<span style="color:#2b91af;">Designer</span>(<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">PrincipalPermissionScopeDesigner</span>))]</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">PrincipalPermissionScope</span> : <span style="color:#2b91af;">NativeActivity</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">public</span> <span style="color:#2b91af;">InArgument</span>&lt;<span style="color:blue;">string</span>&gt; PrincipalPermissionName { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">public</span> <span style="color:#2b91af;">InArgument</span>&lt;<span style="color:blue;">string</span>&gt; PrincipalPermissionRole { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">public</span> <span style="color:#2b91af;">Activity</span> Body { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">void</span> Execute(<span style="color:#2b91af;">NativeActivityContext</span> context)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            <span style="color:blue;">var</span> name = <span style="color:blue;">this</span>.PrincipalPermissionName.Get(context);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            <span style="color:blue;">var</span> role = <span style="color:blue;">this</span>.PrincipalPermissionRole.Get(context);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            <span style="color:blue;">var</span> principalPermission = <span style="color:blue;">new</span> <span style="color:#2b91af;">PrincipalPermission</span>(name, role);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            context.Properties.Add(<span style="color:#a31515;">"AuthorizationManager"</span>, </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">new</span> <span style="color:#2b91af;">AuthorizationManager</span>(principalPermission));</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            context.ScheduleActivity(<span style="color:blue;">this</span>.Body);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        }</span></p>
+<p class="MsoNormal">            }</p>
+<p class="MsoNormal">As part of Scope activity execution, I have added my ReceiveMessageCallback in execution properties collection. This enables our callback to be called for <em><span style="text-decoration:underline;">every message received by any activity inside the Scope</span></em>. Once we have access to OperationContext (which is the only as the only parameter of the callback) we can use it to perform authorization.</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        [<span style="color:#2b91af;">DataContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">class</span> <span style="color:#2b91af;">AuthorizationManager</span> : <span style="color:#2b91af;">IReceiveMessageCallback</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            [<span style="color:#2b91af;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            <span style="color:#2b91af;">PrincipalPermission</span> principalPermission;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            <span style="color:blue;">public</span> AuthorizationManager(<span style="color:#2b91af;">PrincipalPermission</span> principalPermission)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">this</span>.principalPermission = principalPermission;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            <span style="color:blue;">public</span> <span style="color:blue;">void</span> OnReceiveMessage(</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                System.ServiceModel.<span style="color:#2b91af;">OperationContext</span> operationContext, </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:#2b91af;">ExecutionProperties</span> activityExecutionProperties)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">var</span> currentPrincipal = <span style="color:#2b91af;">Thread</span>.CurrentPrincipal;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">var</span> isPrincipalSet = <span style="color:blue;">false</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">var</span> targetPrincipal = GetPrincipal(operationContext);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">try</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                    <span style="color:blue;">if</span> (targetPrincipal != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                    {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                        <span style="color:#2b91af;">Thread</span>.CurrentPrincipal = targetPrincipal;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                        isPrincipalSet = <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                        principalPermission.Demand();</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                    }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">catch</span> (<span style="color:#2b91af;">SecurityException</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                    <span style="color:blue;">throw</span> <span style="color:#2b91af;">SecurityUtility</span>.CreateAccessDeniedFaultException();</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                <span style="color:blue;">finally</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                    <span style="color:blue;">if</span> (isPrincipalSet)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                        <span style="color:#2b91af;">Thread</span>.CurrentPrincipal = currentPrincipal;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">                }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">            }</span></p>
+<p class="MsoNormal">And with a customer designer, this is how it look like</p>
+<p class="MsoNormal"><img src="{{ site.baseurl }}/assets/image001123456.png" border="0" alt="" width="325" height="566" /></p>
+</div>

@@ -1,0 +1,315 @@
+---
+layout: post
+title: Claim-based-security for ASP.NET Web APIs using DotNetOpenAuth
+date: 2012-05-04 18:50:11.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- ASP.NET Web APIs
+tags:
+- ASP.NET Web API
+meta:
+  _edit_last: '13661190'
+  twitter_cards_summary_img_size: a:6:{i:0;i:244;i:1;i:101;i:2;i:3;i:3;s:24:"width="244"
+    height="101"";s:4:"bits";i:8;s:4:"mime";s:9:"image/png";}
+  _oembed_f2503fed8ea8b2d2e8849824c94a6fc7: '{{unknown}}'
+  _oembed_0f0dd5e0c8a3b3ae4f9c415e1cbcb30b: '{{unknown}}'
+  _oembed_4583e0b37132267a9a6aadfa0ad08af7: '{{unknown}}'
+  _oembed_4a5e2063168946f42b68c75a4fbd488b: '{{unknown}}'
+  _oembed_43034c6d7959fdce49326c7b53c138e3: '{{unknown}}'
+  _oembed_a90feb6b8af91c4853c74128b835ef2a: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p><a href="http://sdrv.ms/JtDLO3">Source Code</a></p>
+<p>Recently I worked with a customer assisting them in implementing their Web APIs using the new ASP.NET Web API framework. Their API would be public so obviously security came up as the key concern to address. Claims-Based-Security is widely used in SOAP/WS-* world and we have rich APIs available in .NET Framework in the form of WCF, WIF &amp; ADFS 2.0. Even though we now have this <a href="http://www.asp.net/web-api">cool library</a> to develop Web APIs, the claims-based-security story for REST/HTTP is still catching up. OAuth 2.0 is almost ready, OpenID Connect is catching up quickly however it would still take sometime before we have WIF equivalent libraries for implementing claims-based-security in REST/HTTP world. <a href="http://www.dotnetopenauth.net/">DotNetOpenAuth</a> seems to be the most prominent open-source library claiming to support OAuth 2.0 so I decided to give it a go to implement the <a href="http://tools.ietf.org/html/draft-ietf-oauth-v2-22#page-8">‘Resource Owner Password Credentials’</a> authorization grant. Following diagram shows the solution structure for my target scenario.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2012/05/clip_image002.png"><img style="background-image:none;margin:0;padding-left:0;padding-right:0;display:inline;padding-top:0;border-width:0;" title="clip_image002" src="{{ site.baseurl }}/assets/clip_image002_thumb.png" alt="clip_image002" width="244" height="101" border="0" /></a></p>
+<p>1. OAuth 2.0 issuer is an ASP.NET MVC application responsible for issuing token based on OAuth 2.0 ‘Password Credentials’ grant type.</p>
+<p>2. Web API Host exposes secured Web APIs which can only be accessed by presenting a valid token issued by the trusted issuer</p>
+<p>3. Sample thick client which consumes the Web API</p>
+<p>I have used the <a href="http://nuget.org/packages/DotNetOpenAuth.Ultimate">DotNetOpenAuth.Ultimate</a> NuGet package which is just a single assembly implementing quite a few security protocols. From OAuth 2.0 perspective, AuthorizationServer is the main class responsible for processing the token issuance request, producing and returning a token for valid &amp; authenticated request. The token issuance action of my OAuthIssuerController looks like this:</p>
+<h1>OAuth 2.0 Issuer</h1>
+<pre class="code"><span style="color:blue;">public class </span><span style="color:#2b91af;">OAuthIssuerController </span>: <span style="color:#2b91af;">Controller </span>{
+    <span style="color:blue;">public </span><span style="color:#2b91af;">ActionResult </span>Index()
+    {
+        <span style="color:blue;">var </span>configuration = <span style="color:blue;">new </span><span style="color:#2b91af;">IssuerConfiguration </span>{
+            EncryptionCertificate = <span style="color:blue;">new </span><span style="color:#2b91af;">X509Certificate2</span>(Server.MapPath(<span style="color:#a31515;">"~/Certs/localhost.cer"</span>)),
+            SigningCertificate = <span style="color:blue;">new </span><span style="color:#2b91af;">X509Certificate2</span>(Server.MapPath(<span style="color:#a31515;">"~/Certs/localhost.pfx"</span>), <span style="color:#a31515;">"a"</span>)
+        };
+
+        <span style="color:blue;">var </span>authorizationServer = <span style="color:blue;">new </span><span style="color:#2b91af;">AuthorizationServer</span>(<span style="color:blue;">new </span><span style="color:#2b91af;">OAuth2Issuer</span>(configuration));
+        <span style="color:blue;">var </span>response = authorizationServer.HandleTokenRequest(Request).AsActionResult();
+
+        <span style="color:blue;">return </span>response;
+    }
+}</pre>
+<p>AuthorizationServer handles all the protocol details and delegate the real token issuance logic to a custom token issuer handler (OAuth2Issuer in following snippet)</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:4b7d6db0-2bc3-44fa-a893-23b067cc12de" class="wlWriterEditableSmartContent" style="margin:0;display:inline;float:none;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Protocol independent issuer</div>
+<div style="background:#fff;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;white-space:nowrap;">
+<li><span style="color:#0000ff;">public</span> <span style="color:#0000ff;">class</span> <span style="color:#2b91af;">OAuth2Issuer</span> : <span style="color:#2b91af;">IAuthorizationServer</span></li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">private</span> <span style="color:#0000ff;">readonly</span> <span style="color:#2b91af;">IssuerConfiguration</span> _configuration;</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> OAuth2Issuer(<span style="color:#2b91af;">IssuerConfiguration</span> configuration)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">if</span> (configuration == <span style="color:#0000ff;">null</span>) <span style="color:#0000ff;">throw</span> <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ArgumentNullException</span>(<span style="color:#a31515;">"configuration"</span>);</li>
+<li style="background:#f3f3f3;">        _configuration = configuration;</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> <span style="color:#2b91af;">RSACryptoServiceProvider</span> AccessTokenSigningKey</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">get</span></li>
+<li style="background:#f3f3f3;">        {</li>
+<li>            <span style="color:#0000ff;">return</span> (<span style="color:#2b91af;">RSACryptoServiceProvider</span>)_configuration.SigningCertificate.PrivateKey;</li>
+<li style="background:#f3f3f3;">        }</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> DotNetOpenAuth.Messaging.Bindings.<span style="color:#2b91af;">ICryptoKeyStore</span> CryptoKeyStore</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">get</span> { <span style="color:#0000ff;">throw</span> <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">NotImplementedException</span>(); }</li>
+<li style="background:#f3f3f3;">    }</li>
+<li></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">public</span> <span style="color:#2b91af;">TimeSpan</span> GetAccessTokenLifetime(DotNetOpenAuth.OAuth2.Messages.<span style="color:#2b91af;">IAccessTokenRequest</span> accessTokenRequestMessage)</li>
+<li>    {</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">return</span> _configuration.TokenLifetime;</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> <span style="color:#2b91af;">IClientDescription</span> GetClient(<span style="color:#0000ff;">string</span> clientIdentifier)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">const</span> <span style="color:#0000ff;">string</span> secretPassword = <span style="color:#a31515;">"test1243"</span>;</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">return</span> <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ClientDescription</span>(secretPassword, <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">Uri</span>(<span style="color:#a31515;">"http://localhost/"</span>), <span style="color:#2b91af;">ClientType</span>.Confidential);</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> <span style="color:#2b91af;">RSACryptoServiceProvider</span> GetResourceServerEncryptionKey(DotNetOpenAuth.OAuth2.Messages.<span style="color:#2b91af;">IAccessTokenRequest</span> accessTokenRequestMessage)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">return</span> (<span style="color:#2b91af;">RSACryptoServiceProvider</span>)_configuration.EncryptionCertificate.PublicKey.Key;</li>
+<li style="background:#f3f3f3;"></li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">bool</span> IsAuthorizationValid(DotNetOpenAuth.OAuth2.ChannelElements.<span style="color:#2b91af;">IAuthorizationDescription</span> authorization)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#008000;">//claims added to the token</span></li>
+<li style="background:#f3f3f3;">        authorization.Scope.Add(<span style="color:#a31515;">"adminstrator"</span>);</li>
+<li>        authorization.Scope.Add(<span style="color:#a31515;">"poweruser"</span>);</li>
+<li style="background:#f3f3f3;"></li>
+<li>        <span style="color:#0000ff;">return</span> <span style="color:#0000ff;">true</span>;</li>
+<li style="background:#f3f3f3;">    }</li>
+<li></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">public</span> <span style="color:#0000ff;">bool</span> IsResourceOwnerCredentialValid(<span style="color:#0000ff;">string</span> userName, <span style="color:#0000ff;">string</span> password)</li>
+<li>    {</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">return</span> <span style="color:#0000ff;">true</span>;</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> DotNetOpenAuth.Messaging.Bindings.<span style="color:#2b91af;">INonceStore</span> VerificationCodeNonceStore</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">get</span></li>
+<li style="background:#f3f3f3;">        {</li>
+<li>            <span style="color:#0000ff;">throw</span> <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">NotImplementedException</span>();</li>
+<li style="background:#f3f3f3;">        }</li>
+<li>    }</li>
+<li style="background:#f3f3f3;">}</li>
+</ol>
+</div>
+</div>
+</div>
+<p>Now with my issuer setup, I can acquire access tokens by POSTing following request to the token issuer endpoint</p>
+<h1>Client</h1>
+<p>POST /Issuer HTTP/1.1</p>
+<p>Content-Type: application/x-www-form-urlencoded; charset=utf-8</p>
+<p>scope=http%3A%2F%2Flocalhost%2F&amp;grant_type=client_credentials&amp;client_id=zamd&amp;client_secret=test1243</p>
+<p>&nbsp;</p>
+<p>In response, I get 200 OK with following payload</p>
+<p>&nbsp;</p>
+<p>HTTP/1.1 200 OK</p>
+<p>Cache-Control: no-cache, no-store, max-age=0, must-revalidate</p>
+<p>Pragma: no-cache</p>
+<p>Content-Type: application/json; charset=utf-8</p>
+<p>Server: Microsoft-IIS/7.5</p>
+<p>Content-Length: 685</p>
+<p>{"access_token":"gAAAAC5KksmbH0FyG5snks_xOcROnIcPldpgksi5b8Egk7DmrRhbswiEYCX7RLdb2l0siW8ZWyqTqxOFxBCjthjTfAHrE8owe3hPxur7Wmn2LZciTYfTlKQZW6ujlhEv6N4V1HL4Md5hdtwy51_7RMzGG6MvvNbEU8_3GauIgaF7JcbQJAEAAIAAAABR4tbwLFF57frAdPyZsIeA6ljo_Y01u-2p5KTfJ2xa6ZhtEpzmC46Omcvps9MbFWgyz6536_77jx9nE3sePTSeyB5zyLznkGDKhjfWwx3KjbYnxCVCV-n2pqKtry0l8nkMj4MrjqoTXpvd_P0c_VGfVXCsVt7BYOO68QbD-m7Yz9rHIZn-CQ4po0FqS2elDVe9qwu_uATbAmOXlkWsbnFwa6_ZDHcSr2M-WZxHTVFin7vEWO7FxIQStabu_r4_0Mo_xaFlBKp2hl9Podq8ltx7KvhqFS0Xu8oIJGp1t5lQKoaJSRTgU8N8iEyQfCeU5hvynZVeoVPaXfMA-gyYfMGspLybaw7XaBOuFJ20-BZW0sAFGm_0sqNq7CLm7LibWNw","token_type":"bearer","expires_in":"300","scope":"http:\/\/localhost\/ adminstrator poweruser"}</p>
+<p><a href="http://zuahmed.files.wordpress.com/2012/05/image.png"><img style="background-image:none;margin:0;padding-left:0;padding-right:0;display:inline;padding-top:0;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb.png" alt="image" width="244" height="190" border="0" /></a></p>
+<p>DotNetOpenAuth also has a WebServerClient class which can be used to acquire tokens and I have used in my test application instead of crafting raw HTTP requests. Following code snippet generates the same above request/response</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:60399082-8c96-46a3-b0ef-bfd6601b7d17" class="wlWriterEditableSmartContent" style="margin:0;display:inline;float:none;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Get Access Token</div>
+<div style="background:#fff;max-height:500px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">private</span> <span style="color:#0000ff;">static</span> <span style="color:#2b91af;">IAuthorizationState</span> GetAccessToken()</li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">var</span> authorizationServer = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">AuthorizationServerDescription</span></li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        TokenEndpoint = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">Uri</span>(<span style="color:#a31515;">"http://localhost:1960/Issuer"</span>),</li>
+<li style="background:#f3f3f3;">        ProtocolVersion = <span style="color:#2b91af;">ProtocolVersion</span>.V20</li>
+<li></li>
+<li style="background:#f3f3f3;">    };</li>
+<li>    <span style="color:#0000ff;">var</span> client = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">WebServerClient</span>(authorizationServer, <span style="color:#a31515;">"http://localhost/"</span>);</li>
+<li style="background:#f3f3f3;">    client.ClientIdentifier = <span style="color:#a31515;">"zamd"</span>;</li>
+<li>    client.ClientSecret = <span style="color:#a31515;">"test1243"</span>;</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">var</span> state = client.GetClientAccessToken(<span style="color:#0000ff;">new</span>[] { <span style="color:#a31515;">"http://localhost/"</span> });</li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">return</span> state;</li>
+<li>}</li>
+</ol>
+</div>
+</div>
+</div>
+<p>Ok Now the 2nd part is to use this access token for authentication &amp; authorization when consuming ASP.NET Web APIs.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:d6553169-0048-4851-b708-f9473a13b1b3" class="wlWriterEditableSmartContent" style="margin:0;display:inline;float:none;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Web API Client</div>
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;" start="1">
+<li><span style="color:#0000ff;">static</span> <span style="color:#0000ff;">void</span> Main(<span style="color:#0000ff;">string</span>[] args)</li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">var</span> state = GetAccessToken();</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Expires = {0}"</span>, state.AccessTokenExpirationUtc);</li>
+<li style="background:#f3f3f3;">    <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Token = {0}"</span>, state.AccessToken);</li>
+<li></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">var</span> httpClient = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">OAuthHttpClient</span>(state.AccessToken)</li>
+<li>    {</li>
+<li style="background:#f3f3f3;">        BaseAddress = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">Uri</span>(<span style="color:#a31515;">"http://localhost:2150/api/values"</span>)</li>
+<li>    };</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Calling web api..."</span>);</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#2b91af;">Console</span>.WriteLine();</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">var</span> response = httpClient.GetAsync(<span style="color:#a31515;">""</span>).Result;</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">if</span> (response.StatusCode==<span style="color:#2b91af;">HttpStatusCode</span>.OK)</li>
+<li style="background:#f3f3f3;">        <span style="color:#2b91af;">Console</span>.WriteLine(response.Content.ReadAsStringAsync().Result);</li>
+<li>    <span style="color:#0000ff;">else</span></li>
+<li style="background:#f3f3f3;">        <span style="color:#2b91af;">Console</span>.WriteLine(response);</li>
+<li></li>
+<li style="background:#f3f3f3;">    <span style="color:#2b91af;">Console</span>.ReadLine();</li>
+<li>}</li>
+</ol>
+</div>
+</div>
+</div>
+<p>On line 8, I’m creating an instance of a customized HttpClient passing in the access token. The httpClient would use this access token for all subsequent HTTP requests</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:cb9ef1d3-b202-405a-b6ed-f3d6b9a70007" class="wlWriterEditableSmartContent" style="margin:0;display:inline;float:none;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">OAuth enabled HttpClient</div>
+<div style="background:#fff;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;white-space:nowrap;">
+<li><span style="color:#0000ff;">public</span> <span style="color:#0000ff;">class</span> <span style="color:#2b91af;">OAuthHttpClient</span> : <span style="color:#2b91af;">HttpClient</span></li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">public</span> OAuthHttpClient(<span style="color:#0000ff;">string</span> accessToken)</li>
+<li style="background:#f3f3f3;">        : <span style="color:#0000ff;">base</span>(<span style="color:#0000ff;">new</span> <span style="color:#2b91af;">OAuthTokenHandler</span>(accessToken))</li>
+<li>    {</li>
+<li style="background:#f3f3f3;"></li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">class</span> <span style="color:#2b91af;">OAuthTokenHandler</span> : <span style="color:#2b91af;">MessageProcessingHandler</span></li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">string</span> _accessToken;</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">public</span> OAuthTokenHandler(<span style="color:#0000ff;">string</span> accessToken)</li>
+<li>            : <span style="color:#0000ff;">base</span>(<span style="color:#0000ff;">new</span> <span style="color:#2b91af;">HttpClientHandler</span>())</li>
+<li style="background:#f3f3f3;">        {</li>
+<li>            _accessToken = accessToken;</li>
+<li style="background:#f3f3f3;"></li>
+<li>        }</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">protected</span> <span style="color:#0000ff;">override</span> <span style="color:#2b91af;">HttpRequestMessage</span> ProcessRequest(<span style="color:#2b91af;">HttpRequestMessage</span> request, System.Threading.<span style="color:#2b91af;">CancellationToken</span> cancellationToken)</li>
+<li>        {</li>
+<li style="background:#f3f3f3;">            request.Headers.Authorization = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">AuthenticationHeaderValue</span>(<span style="color:#a31515;">"Bearer"</span>, _accessToken);</li>
+<li>            <span style="color:#0000ff;">return</span> request;</li>
+<li style="background:#f3f3f3;">        }</li>
+<li></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">protected</span> <span style="color:#0000ff;">override</span> <span style="color:#2b91af;">HttpResponseMessage</span> ProcessResponse(<span style="color:#2b91af;">HttpResponseMessage</span> response, System.Threading.<span style="color:#2b91af;">CancellationToken</span> cancellationToken)</li>
+<li>        {</li>
+<li style="background:#f3f3f3;">            <span style="color:#0000ff;">return</span> response;</li>
+<li>        }</li>
+<li style="background:#f3f3f3;">    }</li>
+<li></li>
+<li style="background:#f3f3f3;">}</li>
+</ol>
+</div>
+</div>
+</div>
+<h1>Relying Party (ASP.NET Web APIs)</h1>
+<p>Finally on the RP side, I have used standard MessageHandler extensibility to extract and validate the ‘access token’. The OAuth2 message handler also extracts the claims from the access token and create a ClaimsPrincipal which is passed on the Web API implementation for authorization decisions.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:b021625e-3590-4f62-98d4-ff2b530d8e68" class="wlWriterEditableSmartContent" style="margin:0;display:inline;float:none;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">OAuth2 Message Handler</div>
+<div style="background:#fff;max-height:500px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">public</span> <span style="color:#0000ff;">class</span> <span style="color:#2b91af;">OAuth2Handler</span> : <span style="color:#2b91af;">DelegatingHandler</span></li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">private</span> <span style="color:#0000ff;">readonly</span> <span style="color:#2b91af;">ResourceServerConfiguration</span> _configuration;</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">public</span> OAuth2Handler(<span style="color:#2b91af;">ResourceServerConfiguration</span> configuration)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#0000ff;">if</span> (configuration == <span style="color:#0000ff;">null</span>) <span style="color:#0000ff;">throw</span> <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ArgumentNullException</span>(<span style="color:#a31515;">"configuration"</span>);</li>
+<li style="background:#f3f3f3;">        _configuration = configuration;</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>    <span style="color:#0000ff;">protected</span> <span style="color:#0000ff;">override</span> <span style="color:#2b91af;">Task</span>&lt;<span style="color:#2b91af;">HttpResponseMessage</span>&gt; SendAsync(<span style="color:#2b91af;">HttpRequestMessage</span> request, <span style="color:#2b91af;">CancellationToken</span> cancellationToken)</li>
+<li style="background:#f3f3f3;">    {</li>
+<li>        <span style="color:#2b91af;">HttpContextBase</span> httpContext;</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">string</span> userName;</li>
+<li>        <span style="color:#2b91af;">HashSet</span>&lt;<span style="color:#0000ff;">string</span>&gt; scope;</li>
+<li style="background:#f3f3f3;"></li>
+<li>        <span style="color:#0000ff;">if</span> (!request.TryGetHttpContext(<span style="color:#0000ff;">out</span> httpContext))</li>
+<li style="background:#f3f3f3;">            <span style="color:#0000ff;">throw</span> <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">InvalidOperationException</span>(<span style="color:#a31515;">"HttpContext must not be null."</span>);</li>
+<li></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">var</span> resourceServer = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ResourceServer</span>(<span style="color:#0000ff;">new</span> <span style="color:#2b91af;">StandardAccessTokenAnalyzer</span>(</li>
+<li>                                                    (<span style="color:#2b91af;">RSACryptoServiceProvider</span>)_configuration.IssuerSigningCertificate.PublicKey.Key,</li>
+<li style="background:#f3f3f3;">                                                    (<span style="color:#2b91af;">RSACryptoServiceProvider</span>)_configuration.EncryptionVerificationCertificate.PrivateKey));</li>
+<li></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">var</span> error = resourceServer.VerifyAccess(httpContext.Request, <span style="color:#0000ff;">out</span> userName, <span style="color:#0000ff;">out</span> scope);</li>
+<li></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">if</span> (error != <span style="color:#0000ff;">null</span>)</li>
+<li>            <span style="color:#0000ff;">return</span> <span style="color:#2b91af;">Task</span>&lt;<span style="color:#2b91af;">HttpResponseMessage</span>&gt;.Factory.StartNew(error.ToHttpResponseMessage);</li>
+<li style="background:#f3f3f3;"></li>
+<li>        <span style="color:#0000ff;">var</span> identity = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ClaimsIdentity</span>(scope.Select(s =&gt; <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">Claim</span>(s, s)));</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">if</span> (!<span style="color:#0000ff;">string</span>.IsNullOrEmpty(userName))</li>
+<li>            identity.Claims.Add(<span style="color:#0000ff;">new</span> <span style="color:#2b91af;">Claim</span>(<span style="color:#2b91af;">ClaimTypes</span>.Name, userName));</li>
+<li style="background:#f3f3f3;"></li>
+<li>        httpContext.User = <span style="color:#2b91af;">ClaimsPrincipal</span>.CreateFromIdentity(identity);</li>
+<li style="background:#f3f3f3;">        <span style="color:#2b91af;">Thread</span>.CurrentPrincipal = httpContext.User;</li>
+<li></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">return</span> <span style="color:#0000ff;">base</span>.SendAsync(request, cancellationToken);</li>
+<li>    }</li>
+<li style="background:#f3f3f3;"></li>
+<li>}</li>
+</ol>
+</div>
+</div>
+</div>
+<p>Inside my Web API, I access the claims information using the standard IClaimsIdentity abstraction.</p>
+<div id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:46ff4e6a-4f75-47c1-b054-92a52f392330" class="wlWriterEditableSmartContent" style="margin:0;display:inline;float:none;padding:0;">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Accessing claims information</div>
+<div style="background:#fff;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">public</span> <span style="color:#2b91af;">IEnumerable</span>&lt;<span style="color:#0000ff;">string</span>&gt; Get()</li>
+<li style="background:#f3f3f3;">{</li>
+<li>    <span style="color:#0000ff;">if</span> (User.Identity.IsAuthenticated &amp;&amp; User.Identity <span style="color:#0000ff;">is</span> <span style="color:#2b91af;">IClaimsIdentity</span>)</li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">return</span> ((<span style="color:#2b91af;">IClaimsIdentity</span>) User.Identity).Claims.Select(c =&gt; c.Value);</li>
+<li>    <span style="color:#0000ff;">return</span> <span style="color:#0000ff;">new</span> <span style="color:#0000ff;">string</span>[] { <span style="color:#a31515;">"value1"</span>, <span style="color:#a31515;">"value2"</span> };</li>
+<li style="background:#f3f3f3;">}</li>
+</ol>
+</div>
+</div>
+</div>
+<h1>Fiddler Testing</h1>
+<p>Once I got the “access token”, I can test few scenarios in fiddler by attaching and tweaking the token when calling my web api.</p>
+<h5>401 without an “access token”</h5>
+<p><a href="http://zuahmed.files.wordpress.com/2012/05/image1.png"><img style="background-image:none;padding-left:0;padding-right:0;display:inline;padding-top:0;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb1.png" alt="image" width="532" height="484" border="0" /></a></p>
+<h5>200 OK with a Valid token</h5>
+<p><a href="http://zuahmed.files.wordpress.com/2012/05/image2.png"><img style="background-image:none;margin:0;padding-left:0;padding-right:0;display:inline;padding-top:0;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb2.png" alt="image" width="244" height="190" border="0" /></a></p>
+<h5>401 with Expired token</h5>
+<p><a href="http://zuahmed.files.wordpress.com/2012/05/image3.png"><img style="background-image:none;margin:0;padding-left:0;padding-right:0;display:inline;padding-top:0;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb3.png" alt="image" width="244" height="146" border="0" /></a></p>
+<h5>401 with Tempered token</h5>
+<p><a href="http://zuahmed.files.wordpress.com/2012/05/image4.png"><img style="background-image:none;margin:0;padding-left:0;padding-right:0;display:inline;padding-top:0;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb4.png" alt="image" width="244" height="211" border="0" /></a></p>
+<p><a href="http://sdrv.ms/JtDLO3">Source code attached</a>. Please feel free to download and use.</p>

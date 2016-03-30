@@ -1,0 +1,53 @@
+---
+layout: post
+title: Silverlight Claim-Based-Security
+date: 2011-02-08 00:18:50.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Security
+- WCF
+- WIF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_ef493968bb7976a1cb62f4dafb1abee7: '{{unknown}}'
+  _oembed_3a0639c83f157b81bcfdfd65566836a4: '{{unknown}}'
+  _oembed_4d43930f4c676d601d109580ebef0e97: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>This would hopefully be a multi-part series showing some tricks to enable claims-based-security in Silverlight 4.0. Silverlight 5.0 would have a much better story around claim-based-security as mentioned <a href="http://www.microsoft.com/silverlight/future/">here</a>. </p>
+<p>In this first post, I’ll give you a high level overview of the solution. The main idea is to use the ‘<a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.routing.routingservice.aspx">WCF Routing Service’</a> in the DMZ to route both token issuance requests &amp; business requests to the actual backend services.</p>
+<p><strong>1. </strong>Routing Service looks for a token issuing request and forwards it to the STS where the actual authentication is performed. After the successful authentication, STS issues a SAML token which goes back to Silverlight client via the routing service. Routing Service also terminates the SSL and backend is called using straight HTTP. This model offers strong security on the internet while keeping the internal deployment simpler &amp; efficient. This model also resembles with the standard SSL offloading setup where a hardware load-balancer is used to terminate the SSL. </p>
+<h2><u>1: Token Issuance Path</u></h2>
+<p><a href="http://zuahmed.files.wordpress.com/2011/02/image7.png"><img style="background-image:none;padding-left:0;padding-right:0;display:inline;padding-top:0;border-width:0;margin:5px;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb7.png" width="1028" height="242" /></a></p>
+<h5><u></u></h5>
+<p><strong>2.</strong> Once the Silverlight client got a SAML token, it can attach it to all subsequent message sent to business service(s). Routing Services forwards al the business messages (messages which doesn’t match the token issuance filter) to the actual backend services again doing the protocol transitioning from HTTPS to HTTP. Please note, here you can use the rich filtering mechanism provided by the Routing services to decide which messages should to which services. I used a very simple MatchAll filter which forwards all the non-token-issuance messages to the business service.</p>
+<h2><u>2: Web Service Call Containing a SAML Token</u></h2>
+<p><a href="http://zuahmed.files.wordpress.com/2011/02/image8.png"><img style="background-image:none;padding-left:0;padding-right:0;display:inline;padding-top:0;border-width:0;margin:5px;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb8.png" width="1028" height="251" /></a></p>
+<p>To implement the 1st part of solution I have used the WSTrustClient class &amp; the associated bindings from the <a href="http://www.microsoft.com/downloads/en/details.aspx?FamilyID=c3e315fa-94e2-4028-99cb-904369f177c0">identity training kit</a>.</p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:48d7aab9-b557-4be9-b746-f5085c517abf" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">var</span> vm = <span style="color:#0000ff;">this</span>.DataContext <span style="color:#0000ff;">as</span> <span style="color:#2b91af;">MainPageViewModel</span>;</p>
+<p> <span style="color:#0000ff;">var</span> stsBinding = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">WSTrustBindingUsernameMixed</span>();</p>
+<p> <span style="color:#0000ff;">var</span> stsCreds = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">UsernameCredentials</span>(vm.UserId, vm.Password);<br /> <span style="color:#0000ff;">var</span> client = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">WSTrustClient</span>(<br />     stsBinding,<br />     <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(vm.SelectedEndpoint),<br />     stsCreds);</p>
+<p> <span style="color:#0000ff;">var</span> rst = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">RequestSecurityToken</span>(<span style="color:#2b91af;">WSTrust13Constants</span>.<span style="color:#2b91af;">KeyTypes</span>.Bearer);<br /> rst.AppliesTo = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(vm.AppliesTo);</p>
+<p> client.IssueCompleted += <span style="color:#0000ff;">new</span> System.<span style="color:#2b91af;">EventHandler</span>&lt;<span style="color:#2b91af;">IssueCompletedEventArgs</span>&gt;(client_IssueCompleted);<br /> client.IssueAsync(rst);</p>
+</div>
+</div>
+</div>
+<p>For the 2nd part I have implemented a message inspector along with an extension method which makes it super easy to attach the SAML with outgoing messages. </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:6de907f2-3711-418c-99c0-41262b248b0a" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background-color:#ffffff;max-height:300px;overflow:auto;white-space:nowrap;padding:2px 5px;"><span style="color:#0000ff;">var</span> vm = <span style="color:#0000ff;">this</span>.DataContext <span style="color:#0000ff;">as</span> <span style="color:#2b91af;">MainPageViewModel</span>;<br /> <span style="color:#0000ff;">var</span> client = <span style="color:#0000ff;">new</span> ServiceReference1.<span style="color:#2b91af;">Service1Client</span>();</p>
+<p> client.AttachToken(vm.SecurityToken.RawToken);</p>
+<p> client.GetDataCompleted += <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">EventHandler</span>&lt;ServiceReference1.<span style="color:#2b91af;">GetDataCompletedEventArgs</span>&gt;(client_GetDataCompleted);<br /> client.GetDataAsync(32);</p>
+</div>
+</div>
+</div>

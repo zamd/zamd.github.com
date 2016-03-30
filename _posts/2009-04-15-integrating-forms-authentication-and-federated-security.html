@@ -1,0 +1,41 @@
+---
+layout: post
+title: Integrating Forms Authentication and Federated Security
+date: 2009-04-15 20:42:24.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- Federation/STS
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><a href="http://www.zamd.net/2009/03/05/FlowingFormsAuthenticationCookieToWCF.aspx">Here</a> I have talked about a technique to flow Forms Authentication cookie to a WCF service and using it as an authentication credential for the service.&nbsp; For this to work – service must be running in <i>ASP.net compatibility mode</i> and Forms Authentication must be configured in web.config.</p>
+<p class="MsoNormal">Here is diagrammatic view of a simple case. </p>
+<p style="text-align:center;" class="MsoNormal" align="center"><img border="0" src="{{ site.baseurl }}/assets/image007.png" width="447" height="99" /></p>
+<p class="MsoNormal">In the above diagram, website authenticates users using Forms authentication, which creates a cookie after successful authentication. When ASP.net sites calls the backend service (in response to users action) – it simply passes the Form Auth cookie as part of the call. Now because our service is running in asp.net compatibility mode and Forms Authentication module is also configured in web.config, cookie will successfully be validated and we will see <i>correct</i> identity in the HttpContext.User</p>
+<p class="MsoNormal">Looking good so far. Yes?</p>
+<p class="MsoNormal">I think, this is acceptable when you only have one to two services – however when we talk about SOA – we generally mean larger number of services and this is where this approach becomes clunky primarily due to following two reasons:</p>
+<p style="text-indent:-18pt;margin-left:37.85pt;" class="MsoListParagraphCxSpFirst"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Every service MUST run under <i>asp.net compatibility mode</i>, which is slower than the default native mode. So you incur some performance plenty. </p>
+<p style="text-indent:-18pt;margin-left:37.85pt;" class="MsoListParagraphCxSpLast"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>For the cookie flow to work, both participants MUST use the same <a href="http://msdn.microsoft.com/en-us/library/ms998288.aspx">&lt;machineKey&gt;</a>.&nbsp; As your share single key among more and more participants – the overall security of solution is getting weaker as key will be duplicated across many places. </p>
+<p style="text-align:center;" class="MsoNormal" align="center"><img border="0" src="{{ site.baseurl }}/assets/image008.png" width="514" height="242" /></p>
+<p class="MsoNormal">So there are some scalability &amp; security issues in the above architecture.</p>
+<p class="MsoNormal">&nbsp;Let’s see how we can improve this architecture by introducing an STS into picture. The goal here is to extract the authentication mechanism (FormsAuth cookie based) out of the services and move it to STS. Service will simply require a token from STS – it is STS’s responsibility to authenticate user using some mechanism (Forms Auth being the step one).</p>
+<p style="text-align:center;" class="MsoNormal" align="center"><img border="0" src="{{ site.baseurl }}/assets/image009.png" width="555" height="288" /></p>
+<p class="MsoNormal">Here you can see ONLY STS is running in asp.net compatibility mode and services are running under native mode which will result in better performance. </p>
+<p class="MsoNormal">Also now we are only sharing keys (&lt;machineKey&gt;) between two participants (STS&nbsp; &amp; Website) regardless of the number of services. Services are simply configured to require a SAML token from the STS and are agnostic to the actual <i>client authentication</i> mechanism. We can easily change cookie based authentication with Kerberos without impacting services at all.</p>
+<p class="MsoNormal">Now Step 1 isn’t really possible out of box – why?</p>
+<p class="MsoNormal">Because it’s the <b><i>wsFederationHttpBinding</i></b>, which talks to STS rather your proxy (configured to use wsFederationHttpBinding). So setting cookie on the proxy will NOT send it to STS and the solution is to extend WCF security framework to enable cookie flow to the STS.</p>
+<p class="MsoNormal">In next post, I will show how to implement Step 1 while still leveraging wsFederationHttpBinding. For now please see this <a href="http://www.zamd.net/2008/07/11/SAMLTokenRequestor.aspx">post</a> for background.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">&nbsp;</p>
+</div>

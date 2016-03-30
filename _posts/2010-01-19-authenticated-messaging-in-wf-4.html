@@ -1,0 +1,65 @@
+---
+layout: post
+title: Authenticated messaging in WF 4
+date: 2010-01-19 16:44:20.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Authenticated messaging is one limitation in WF 4 as currently there is no API for setting up credentials to be used with a Send activity. Having said that, ChannelFactory used by Send activity still picks up the behaviour configuration from the config file.</p>
+<p class="MsoNormal">So you can potentially write a custom behaviour to supply <em>additional </em>credentials to the Send activity. Let’s see a simple clientCredentialsAdapter behaviour which will enable you to setup userName/Password in config file. It’s almost always a bad idea to keep unencrypted password in config files so it is recommended that you should use config encryption to encrypt the behaviour section.</p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">&lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">behavior</span><span style="font-size:9.5pt;font-family:&quot;color:blue;"> </span><span style="font-size:9.5pt;font-family:&quot;color:red;">name</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">=</span><span style="font-size:9.5pt;font-family:&quot;">"<span style="color:blue;">credentialAdapter</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">  &lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">clientCredentials</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">    &lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">serviceCertificate</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">      &lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">authentication</span><span style="font-size:9.5pt;font-family:&quot;color:blue;"> </span><span style="font-size:9.5pt;font-family:&quot;color:red;">certificateValidationMode</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">=</span><span style="font-size:9.5pt;font-family:&quot;">"<span style="color:blue;">None</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">      &lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">defaultCertificate</span><span style="font-size:9.5pt;font-family:&quot;color:blue;"> </span><span style="font-size:9.5pt;font-family:&quot;color:red;">findValue</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">=</span><span style="font-size:9.5pt;font-family:&quot;">"<span style="color:blue;">f7ad5a9dcc35f21ffc691925515f48eb44f5e07a</span>"<span style="color:blue;"> </span><span style="color:red;">x509FindType</span><span style="color:blue;">=</span>"<span style="color:blue;">FindByThumbprint</span>"<span style="color:blue;"> </span><span style="color:red;">storeLocation</span><span style="color:blue;">=</span>"<span style="color:blue;">CurrentUser</span>"<span style="color:blue;"> </span><span style="color:red;">storeName</span><span style="color:blue;">=</span>"<span style="color:blue;">My</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">    &lt;/</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">serviceCertificate</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">  &lt;/</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">clientCredentials</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">  </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">  &lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">clientCredentialsAdapter</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">    &lt;</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">userName</span><span style="font-size:9.5pt;font-family:&quot;color:blue;"> </span><span style="font-size:9.5pt;font-family:&quot;color:red;">userName</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">=</span><span style="font-size:9.5pt;font-family:&quot;">"<span style="color:blue;">configUser</span>"<span style="color:blue;"> </span><span style="color:red;">password</span><span style="color:blue;">=</span>"<span style="color:blue;">p@ssw0rd!</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">  &lt;/</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">clientCredentialsAdapter</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">&lt;/</span><span style="font-size:9.5pt;font-family:&quot;color:#a31515;">behavior</span><span style="font-size:9.5pt;font-family:&quot;color:blue;">&gt;</span></p>
+<p class="MsoNormal">At this point, you can configure this behaviour on an endpoint used by a Send activity. This change will enable Send activity to use this userName/Password for securing outgoing messages.</p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;color:blue;">public</span><span style="font-size:9.5pt;font-family:&quot;"> <span style="color:blue;">class</span> <span style="color:#2b91af;">ClientCredentialsAdapterBehavior</span> : <span style="color:#2b91af;">IEndpointBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">{</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:#2b91af;">ClientCredentialsAdapterBehaviorElement</span> configElement;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">public</span> ClientCredentialsAdapterBehavior(<span style="color:#2b91af;">ClientCredentialsAdapterBehaviorElement</span> configElement)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">this</span>.configElement = configElement;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> AddBindingParameters(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">BindingParameterCollection</span> bindingParameters){}</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, System.ServiceModel.Dispatcher.<span style="color:#2b91af;">ClientRuntime</span> clientRuntime)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="color:blue;">var</span> clientCredentials = endpoint.Behaviors.Find&lt;<span style="color:#2b91af;">ClientCredentials</span>&gt;();</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        <span style="background:yellow;">Adapt(clientCredentials);</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">EndpointDispatcher</span> endpointDispatcher) { }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint){}</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;"> </span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    <span style="color:blue;">void</span> Adapt(<span style="color:#2b91af;">ClientCredentials</span> orignalCredentials)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        orignalCredentials.UserName.UserName = configElement.UserName.UserName;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">        orignalCredentials.UserName.Password = configElement.UserName.Password;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">    }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:&quot;">}</span></p>
+<p class="MsoNormal">So that was simple<span style="font-family:Wingdings;">J</span> What about a scenario where you have userName/Password as part of workflow state and you want to use that instead?</p>
+<p class="MsoNormal">Well, in that case there is more work involved which I’ll discuss in next post.</p>
+</div>

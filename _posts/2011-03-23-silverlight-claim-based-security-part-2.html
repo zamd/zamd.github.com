@@ -1,0 +1,177 @@
+---
+layout: post
+title: Silverlight Claim-Based-Security Part-2
+date: 2011-03-23 22:40:16.000000000 +05:00
+type: post
+published: true
+status: publish
+categories: []
+tags: []
+meta:
+  _oembed_08ffdfa2499c0eb6ca27bf5c51569e26: '{{unknown}}'
+  _oembed_19f03f4641463620a98eeb904a6c8ef0: '{{unknown}}'
+  _oembed_5ea32d4a6f5860b5f35ba1e27cfc9981: '{{unknown}}'
+  _oembed_8e2aa3e047d28719cb6185c12eb89d21: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>In <a href="http://zamd.net/2011/02/08/silverlight-claim-based-security/">part 1</a> I talked about a simple approach to combine WCF Routing service and claims-based security and I got some questions about the sample code and routing service configuration. In this post, I’ll explain some additional scenarios and would provide link to the source code. In my original post I used following very simple routing configuration where the RST (Request Security Token) message goes to the STS and everything else goes to the UserService (a business service)</p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:fc35c06f-e70e-4be2-9bf6-fc5d69f83440" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Simple Routing Configuration</div>
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">routing</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">filterTables</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">filterTable</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">SLRouting</span>&quot;<span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">endpointName</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">stsEndpoint</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">filterName</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">matchRST</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">priority</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">5</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">endpointName</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">serviceEndpoint</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">filterName</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">allMessages</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">priority</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">1</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">filterTable</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">filterTables</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">filters</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">filter</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">filterType</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Action</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">filterData</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">matchRST</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">filter</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">filterType</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">MatchAll</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">allMessages</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">filters</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">routing</span><span style="color:#0000ff;">&gt;</span></li>
+</ol></div>
+</p></div>
+</p></div>
+<p>&#160;</p>
+<p>The STS endpoint uses an action filter (line 4) which looks for a WS-Trust RST message and forwards it to the STS. If RST filter doesn’t match, then the routing engine goes and tries the second filter (line 5) which is a match all. So in my simple configuration all non-RST messages are simply sent to the second endpoint. Real world scenarios obviously would require more granular routing but it can easily be enabled using the same pattern. WCF routing configuration is quite powerful and supports composite (AND, OR etc) and custom filters using which you can model any routing logic as you per your needs. </p>
+<p>Another interesting scenarios is to support multiple authentication schemes on the STS – windows authentication for the intranet while userName password for the internet.&#160; </p>
+<p>To enables this I have exposed the STS functionality using two different endpoints supporting both username/password based authentication as well as windows authentication.&#160; </p>
+<pre><font color="#0000ff">/ActiveSTS/issue.svc/IWSTrust13<br />/ActiveSTS/windowsintegrated/issue.svc/IWSTrust13</font><br /></pre>
+<p>Because windows authentication is point-point so I relied on impersonation to flow the end-user identity to the STS via the Router. The windows authentication flow looks like this:</p>
+<p><a href="http://zuahmed.files.wordpress.com/2011/03/image.png"><img style="background-image:none;border-bottom:0;border-left:0;padding-left:0;padding-right:0;display:inline;border-top:0;border-right:0;padding-top:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="865" height="162" /></a></p>
+<p>For the windows-integrated endpoint,&#160; router is configured to impersonate the client and the outgoing messages is sent under this impersonated context which enables the STS to authenticate the original user using windows authentication. </p>
+<pre><font face="Consolas"><span><font color="#0000ff"><font>&#160;&#160;&#160;&#160;&#160; &lt;</font></font></span><font><span><font color="#a31515">serviceBehaviors</font></span></font></font><font><font face="Consolas"><font color="#0000ff"><span>&gt;</span><br /><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; &lt;</span></font><span><font color="#a31515">behavior</font></span></font><font face="Consolas"><font color="#0000ff"><span>&gt;</span><br /><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; &lt;</span></font><span><font color="#a31515">serviceAuthorization</font></span><span><font color="#0000ff">&#160;</font></span><span><font color="#ff0000">impersonateCallerForAllOperations</font></span><span><font color="#0000ff">=</font></span><font color="#000000">&quot;</font><span><font color="#0000ff">true</font></span><font color="#000000">&quot;</font></font><font face="Consolas"><font color="#0000ff"><span>/&gt;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; </span><br /><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; &lt;/</span></font><span><font color="#a31515">behavior</font></span></font></font><font face="Consolas"><font><font color="#0000ff"><span>&gt;</span><br /><span>&#160;&#160;&#160;&#160;&#160; &lt;/</span></font><span><font color="#a31515">serviceBehaviors</font></span></font><span><font color="#0000ff">&gt;</font></span></font></pre>
+<p>When deploying in IIS, both the router endpoint and the STS endpoint needs to be configured for windows-authentication and I have accomplished it by creating a sub-folder (windowsintegrated) under both virtual directories and configuring this for windows-authentication. The main/parent virtual directories still has anonymous access enabled for the userName authentication to work. Note with userName authentication,&#160; the credentials goes inside the SOAP message. My VS setup look like this:</p>
+<p><a href="http://zuahmed.files.wordpress.com/2011/03/image1.png"><img style="background-image:none;border-bottom:0;border-left:0;padding-left:0;padding-right:0;display:inline;border-top:0;border-right:0;padding-top:0;margin:5px;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb1.png" width="378" height="633" /></a></p>
+<p>The web.config(s) under the ‘windowsintegrated’ folder overrides the settings to enable windows-authentication. For example, in the STS project the root web.config defines both service endpoints along with a default binding which is configured for UserName authentication over HTTP.</p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:07757c91-2e13-4f96-a3fd-17e5e2666f94" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Root web.config: STS</div>
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceHostingEnvironment</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceActivations</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">relativeAddress</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">~/issue.svc</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">service</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">CustomSecurityTokenServiceConfiguration</span>&quot;<span style="color:#0000ff;"> </span></li>
+<li>           <span style="color:#0000ff;"></span><span style="color:#ff0000;">factory</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.Protocols.WSTrust.WSTrustServiceHostFactory</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;"></span></li>
+<li>      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">add</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">relativeAddress</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">~/windowsintegrated/issue.svc</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">service</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">CustomSecurityTokenServiceConfiguration</span>&quot;<span style="color:#0000ff;"> </span></li>
+<li style="background:#f3f3f3;">           <span style="color:#0000ff;"></span><span style="color:#ff0000;">factory</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.Protocols.WSTrust.WSTrustServiceHostFactory</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceActivations</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceHostingEnvironment</span><span style="color:#0000ff;">&gt;</span></li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">services</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">service</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.Protocols.WSTrust.WSTrustServiceContract</span>&quot;<span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">endpoint</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">IWSTrust13</span>&quot;</li>
+<li>                <span style="color:#0000ff;"></span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">customBinding</span>&quot;</li>
+<li style="background:#f3f3f3;">                <span style="color:#0000ff;"></span><span style="color:#ff0000;">contract</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Microsoft.IdentityModel.Protocols.WSTrust.IWSTrust13SyncContract</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">service</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">services</span><span style="color:#0000ff;">&gt;</span></li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">bindings</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">customBinding</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">security</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">authenticationMode</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">UserNameOverTransport</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">allowInsecureTransport</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">true</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">httpTransport</span><span style="color:#0000ff;">/&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">customBinding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">bindings</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+</ol>
+</div>
+</div>
+</div>
+<p>&#160;</p>
+<p>The web.config in the ‘windowsintegrated’ changes the default binding to enable windows authentication. I’m using the ‘Simplified WCF Configuration’ here so the final config is very clean as a result. </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:d3b377ff-fa71-4e8a-9a64-38be0d6476b7" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Overriden default CustomBindin</div>
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">services</span><span style="color:#0000ff;">/&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">bindings</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">customBinding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">httpTransport</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">authenticationScheme</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Negotiate</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">customBinding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">bindings</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+</ol>
+</div>
+</div>
+</div>
+<p>Similar technique is used on the WebSite/Router where I pick different STS endpoint/binding depending on the chosen router endpoint. The root web.config goes to the anonymous STS endpoint (line 2 &amp; 3) and authentication is done using the message credentials (userName). </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:ec28efc2-5f07-4833-8009-1f9fd4f59522" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Root web.config WebSite</div>
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">client</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">endpoint</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">stsEndpoint</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">http://localhost/ActiveSTS/issue.svc/IWSTrust13</span>&quot;</li>
+<li>            <span style="color:#0000ff;"></span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">customBinding</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">bindingConfiguration</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">outBinding</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">contract</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">*</span>&quot;<span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">endpoint</span><span style="color:#0000ff;">&gt;</span></li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">endpoint</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">serviceEndpoint</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">http://localhost/UserService/Service1.svc</span>&quot;</li>
+<li>      <span style="color:#0000ff;"></span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">customBinding</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">bindingConfiguration</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">outBinding</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">contract</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">*</span>&quot;<span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">endpoint</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">&nbsp;</li>
+<li><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">client</span><span style="color:#0000ff;">&gt;</span></li>
+</ol>
+</div>
+</div>
+</div>
+<p>&#160;</p>
+<p>Web.config in the ‘windowsintegrated’ changes the default STS endpoint/binding to match the windows authentication requirements and also enables impersonation to flow windows identity to the STS. </p>
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:f3db0aa1-e617-45fd-9c5f-f64dfad8e817" class="wlWriterEditableSmartContent">
+<div style="border:#000080 1px solid;color:#000;font-family:'Courier New', Courier, Monospace;font-size:10pt;">
+<div style="background:#000080;color:#fff;font-family:Verdana, Tahoma, Arial, sans-serif;font-weight:bold;padding:2px 5px;">Router config for windows auth</div>
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li><span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">services</span><span style="color:#0000ff;">/&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">client</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">remove</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">stsEndpoint</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">endpoint</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">stsEndpoint</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">address</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">http://localhost/ActiveSTS/windowsintegrated/issue.svc/IWSTrust13</span>&quot;</li>
+<li style="background:#f3f3f3;">              <span style="color:#0000ff;"></span><span style="color:#ff0000;">binding</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">customBinding</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">bindingConfiguration</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">outBinding</span>&quot;<span style="color:#0000ff;"> </span><span style="color:#ff0000;">contract</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">*</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">client</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">bindings</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">customBinding</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">inBinding</span>&quot;<span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">httpsTransport</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">authenticationScheme</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Negotiate</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">name</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">outBinding</span>&quot;<span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">httpTransport</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">authenticationScheme</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">Negotiate</span>&quot;<span style="color:#0000ff;">/&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">binding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>&nbsp;</li>
+<li style="background:#f3f3f3;">    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">customBinding</span><span style="color:#0000ff;">&gt;</span></li>
+<li>  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">bindings</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span></li>
+<li>        <span style="color:#0000ff;">&lt;</span><span style="color:#a31515;">serviceAuthorization</span><span style="color:#0000ff;"> </span><span style="color:#ff0000;">impersonateCallerForAllOperations</span><span style="color:#0000ff;">=</span>&quot;<span style="color:#0000ff;">true</span>&quot;<span style="color:#0000ff;">/&gt;          </span></li>
+<li style="background:#f3f3f3;">      <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behavior</span><span style="color:#0000ff;">&gt;</span></li>
+<li>    <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">serviceBehaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;">  <span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">behaviors</span><span style="color:#0000ff;">&gt;</span></li>
+<li><span style="color:#0000ff;">&lt;/</span><span style="color:#a31515;">system.serviceModel</span><span style="color:#0000ff;">&gt;</span></li>
+<li style="background:#f3f3f3;"><span style="color:#0000ff;"></span></li>
+</ol>
+</div>
+</div>
+</div>
+<p>&#160;</p>
+<p>Finally make sure to enable integrated windows authentication on the ‘windowsintegrated’ directory in IIS before you run the samples. </p>
+<p><a href="http://zuahmed.files.wordpress.com/2011/03/image2.png"><img style="background-image:none;border-bottom:0;border-left:0;padding-left:0;padding-right:0;display:inline;border-top:0;border-right:0;padding-top:0;margin:5px;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb2.png" width="807" height="376" /></a></p>
+<p>enjoy… </p>
+<p>Download: <a href="http://cid-724b6fcd63a8c1ac.office.live.com/self.aspx/zamd.net/SLClaimsBasedSecurity.zip">Sample solution</a></p>

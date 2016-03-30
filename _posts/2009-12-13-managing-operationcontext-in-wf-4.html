@@ -1,0 +1,64 @@
+---
+layout: post
+title: Managing OperationContext in WF 4
+date: 2009-12-13 12:26:43.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><b><u>Managing OperationContext in WF 4 using the ISendMessageCallback &amp; IReceiveMessageCallback</u></b><span style="color:#1F497D;"></span></p>
+<p class="MsoNormal">WF 4 raised the level of abstraction for writing workflow services and their clients by defining <b>Send</b> &amp; <b>Receive</b> messaging activities. These activities hides lot of WCF plumbing from you and as result, some useful components like <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.operationcontext.aspx">OperationContext</a> are also not available in the usual WCF way. For example,</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;"><span style="font-family:Wingdings;"><span>Ø<span style="font:7pt \"Times New Roman\";">&nbsp; </span></span></span>When using Send activity, you never see the ChannelFactory/Channel so you can&#8217;t scope an OperationContext around them. </p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;"><span style="font-family:Wingdings;"><span>Ø<span style="font:7pt \"Times New Roman\";">&nbsp; </span></span></span>When using Receive activity, activities following the Receive <i>might </i>execute on a different thread (than the WCF dispatcher thread) in which case you again wouldn&#8217;t get OperationContext.</p>
+<p class="MsoNormal">If you done any WCF programming, you would agree that OperationContext can be very useful on both Send/Receive side:</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;"><span style="font-family:Wingdings;"><span>Ø<span style="font:7pt \"Times New Roman\";">&nbsp; </span></span></span>On the send side, you can use OperationContext for sending additional message headers as part of the outgoing message or you can use OperationContext to add additional message properties to the outgoing message.</p>
+<p class="MsoListParagraph" style="margin-left:54pt;text-indent:-18pt;"><span style="font-family:Wingdings;"><span>Ø<span style="font:7pt \"Times New Roman\";">&nbsp; </span></span></span>On the receive side, you can use OperationContext to retrieve very useful information including but not limited to security information related to the incoming message.</p>
+<p class="MsoNormal">So in short, access to OperationContext on Send/Receive side can be very useful and luckily WF 4 has enabled this using a callback mechanism based on <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.activities.ireceivemessagecallback(VS.100).aspx">IReceiveMessageCallback</a> &amp; <a href="http://msdn.microsoft.com/en-us/library/system.servicemodel.activities.isendmessagecallback(VS.100).aspx">ISendMessageCallback</a>.</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">IReceiveMessageCallback(s) are invoked just after the message is received by a Receive activity. Similarly, ISendMessageCallback(s) are invoked just before the message is sent on wire. </p>
+<p class="MsoNormal">To attach these callback(s) to Send &amp; Receive activities, they must be available as execution properties when Send/Receive executes. Execution properties are WF mechanism to enable Thread Local Storage (TLS) in a thread agnostic way. A common method of adding execution properties to and activity is to create a parent scope activity and set the execution properties as part of parent execution. Here is an example.</p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;color:blue;">public</span><span style="font-size:9.5pt;font-family:Consolas;"> <span style="color:blue;">class</span> <span style="color:#2B91AF;">OperationContextScope</span> : <span style="color:#2B91AF;">NativeActivity</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">{</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:#2B91AF;">Activity</span> Body { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">void</span> CacheMetadata(<span style="color:#2B91AF;">NativeActivityMetadata</span> metadata)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; metadata.AddChild(<span style="color:blue;">this</span>.Body);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">void</span> Execute(<span style="color:#2B91AF;">NativeActivityContext</span> context)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:yellow;">context.Properties.Add(<span style="color:#A31515;">&quot;MessageInspector&quot;</span>, <span style="color:blue;">new</span> <span style="color:#2B91AF;">SendMessageInspector</span>());</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; context.ScheduleActivity(<span style="color:blue;">this</span>.Body);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; <span style="color:blue;">class</span> <span style="color:#2B91AF;">SendMessageInspector</span> : <span style="color:#2B91AF;">ISendMessageCallback</span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> OnSendMessage(<span style="color:#2B91AF;">OperationContext</span> operationContext)</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> h1 = <span style="color:#2B91AF;">MessageHeader</span>.CreateHeader(<span style="color:#A31515;">&quot;yourName&quot;</span>, <span style="color:#A31515;">&quot;urn:personal&quot;</span>, <span style="color:#A31515;">&quot;zuahmed&quot;</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; operationContext.OutgoingMessageHeaders.Add(h1);</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">}</span></p>
+<p class="MsoNormal">Once you defined a scope activity like above you can just wrap your actual Send/Receive inside this scope to activate your inspector. </p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;color:#2B91AF;">WorkflowInvoker</span><span style="font-size:9.5pt;font-family:Consolas;">.Invoke(</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; <span style="color:blue;background:yellow;">new</span><span style="background:yellow;"> <span style="color:#2B91AF;">OperationContextScope</span></span></span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Body =</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">new</span> <span style="color:#2B91AF;">Send</span> { OperationName = <span style="color:#A31515;">&quot;Ping&quot;</span>, ServiceContractName = <span style="color:#A31515;">&quot;IPingService&quot;</span>, EndpointConfigurationName = <span style="color:#A31515;">&quot;PingEpr&quot;</span> }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:9.5pt;font-family:Consolas;">&nbsp;&nbsp;&nbsp; );</span></p>
+<p class="MsoNormal">IReceiveMessageCallback and Receive activity is exactly the same and I leaving that as an exercise for the readers <span style="font-family:Wingdings;">J</span></p>
+<p class="MsoNormal">In this post, I have shown you a general purpose mechanism to interact with an OperationContext while using WF 4 messaging activities. In next few posts, I&#8217;ll use this mechanism to add some very useful security features to WF 4. Stay tuned...</p>
+</p></div>

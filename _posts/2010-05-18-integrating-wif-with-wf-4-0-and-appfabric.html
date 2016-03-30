@@ -1,0 +1,35 @@
+---
+layout: post
+title: Integrating WIF with WF 4.0 and AppFabric
+date: 2010-05-18 21:40:55.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF4
+- WFSP
+- WIF
+tags: []
+meta:
+  _oembed_c323ad5de977c173a637a1afa4be3a0e: '{{unknown}}'
+  _oembed_a0442b0fd6b25f1dd7873959cdc06741: '{{unknown}}'
+  _oembed_5fdb1988c1321146c8edbb6a88f2e926: '{{unknown}}'
+  _oembed_c13ec7023746b3bb534bdae7910d994a: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>WIF is framework to claim-enable ASP.net applications and WCF services. WF 4.0 introduced a new paradigm for developing services (known as <i>Workflow Services), </i>whose implementation is based on workflow. Windows Server AppFabric provides the hosting, management &amp; monitoring capabilities for services with a primary focus on workflow services.</p>
+<p>WIF integration with Workflow services can be seen at couple of different scopes.</p>
+<p><b>1. </b><b>Claims-Enabled Workflow Service</b></p>
+<p>As workflow services are standard WCF services, WIF can easily be enabled at the WCF layer using the standard configuration based approach documented in <a href="http://msdn.microsoft.com/en-us/library/ee748481.aspx">MSDN</a>. This would <i>claims-enable</i> your workflow services and you can use various WIF’s extensions (code-based) for claims-transformation (ClaimsAuthenticationManager) and claims-based authorization (ClaimsAuthorizationManager). </p>
+<p><b>2. </b><b>Workflow Services calling other Claims-Enabled Services</b></p>
+<p>WF 4.0 provides messaging activities to call other services from workflows. In most cases, Claims-Enabled services require a token from an STS. In a non-WF world, you can either use wsFederationHttpBinding or the new fine grained WIF API (WSTrustChannelFactory) to do this (you can use <a href="http://zamd.net/2008/07/11/saml-token-requestor/">IssuedSecurityTokenProvider</a> directly). The wsFederationHttpBinding approach kind of works (<i>transparently) </i>in Workflow services world as well but could be quite expensive in terms of performance. See <a href="http://zamd.net/2010/04/26/messaging-activities-intricacies/">my post on messaging activities</a> for additional details. The wsFederationHttpBinding approach is also not suitable for scenarios, where you need fine-grained control of issued tokens or you want to use issued token in long-running scenarios without re-acquiring them. </p>
+<p><b>3. </b><b>WIF in middle-tier Workflow Services </b></p>
+<p>WIF enables claims-based-delegation using then ActAs/OnBehalfOf element of WS-Trust protocol. In code-based services, you can access the incoming token in the middle-tier service and then use this when acquiring a SAML token to call a backend service. With this model, the backend service can see all the identities involved in the call chain. Claims-based delegation is not <i>easily </i>possible in workflow services when using wsFederationHttpBinding.</p>
+<p><strong>1 &amp; 2</strong> be greatly enhanced by introducing custom activities which can decouple token acquisition from its use; much like activity counterpart of WIF’s WSTrustChannelFactory API.</p>
+<p><img style="border-bottom:0;border-left:0;display:block;float:none;margin-left:auto;border-top:0;margin-right:auto;border-right:0;" title="saml" border="0" alt="saml" src="{{ site.baseurl }}/assets/saml_thumb.png" width="392" height="503" /></p>
+<p>In above diagram InitializeSamlSecurityToken custom activity encapsulate the functionality of acquiring a token from a STS using the WS-Trust protocol. Internally it uses the standard correlated Request-Reply pair configured for WS-Trust contract. I’ll talk more about TokenFlowScope in a future post but here it enables the Ping activity to use the acquired token when calling a service which requires Saml token. I have attached <a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/SamlAuthentication.zip">complete solution with post</a> (STS, Test Service &amp; a Test Client)which also includes alpha drop of <a href="http://zamd.net/2010/02/23/introducing-workflow-security-pack/">WFSP</a> binaries as well. Feel free to download and experiment and let me know your thoughts. </p>

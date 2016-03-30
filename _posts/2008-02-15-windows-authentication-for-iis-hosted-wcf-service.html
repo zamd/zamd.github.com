@@ -1,0 +1,38 @@
+---
+layout: post
+title: Windows authentication for IIS hosted WCF Service
+date: 2008-02-15 18:26:16.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><font color="#0000ff"><strong>Security settings for this service require 'Anonymous' Authentication but it is not enabled for the IIS application that hosts this service.</strong></font></p>
+<p class="MsoNormal">I have seen people struggling while configuring integrated windows authentication for their IIS hosted WCF service and are getting above exception. There are two settings required to make this work. </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>First enable Integrated Windows Authentication on IIS </p>
+<p class="MsoListParagraph" style="margin-left:.75in;text-indent:-.25in;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Set the <b><i>clientCredentialType</i></b> to Windows</p>
+<p class="MsoNormal">Here is a sample binding to enable windows authentication in IIS.</p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&lt;</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">bindings</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">&gt;</span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp; &lt;</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">basicHttpBinding</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">&gt;</span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">binding</span><span style="font-size:12pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:12pt;color:red;font-family:'Courier New';">name</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:12pt;font-family:'Courier New';">"<span style="color:blue;">basicHttpBinding IMyService</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">security</span><span style="font-size:12pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:12pt;color:red;font-family:'Courier New';">mode</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:12pt;font-family:'Courier New';">"<span style="color:blue;">TransportCredentialOnly</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">transport</span><span style="font-size:12pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:12pt;color:red;font-family:'Courier New';">clientCredentialType</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:12pt;font-family:'Courier New';">"<span style="color:blue;">Windows</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">security</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">&gt;</span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;/</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">binding</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">&gt;</span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&nbsp; &lt;/</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">basicHttpBinding</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">&gt;</span></p>
+<p class="MsoNormal" style="margin-left:.5in;"><span style="font-size:12pt;color:blue;font-family:'Courier New';">&lt;/</span><span style="font-size:12pt;color:#a31515;font-family:'Courier New';">bindings</span><span style="font-size:12pt;color:blue;font-family:'Courier New';">&gt;</span><span lang="EN-GB" style="color:#404040;"></span></p>
+<p class="MsoNormal">However even after making these two changes you might still be getting the exception and the prime reason is that one of the service endpoints (most likely the MEX endpoint) still requires anonymous access while it is disabled in IIS. </p>
+<p class="MsoNormal">Why mostly MEX endpoint? </p>
+<p class="MsoNormal">Because the default settings of mexHttpBinding allows anonymous access by setting <i>clientCredentialsType</i> to <i>None</i>. So if you have a mex endpoint and you are using out of the box mexHttpBinding you will be getting the above exception. </p>
+<p class="MsoNormal">A simple fix is to use the same secured binding, in this case basicHttpBinding IMyService, for the mex endpoint as well or create a new binding and disable the anonymous access for mex endpoint as well.</p>
+</div>

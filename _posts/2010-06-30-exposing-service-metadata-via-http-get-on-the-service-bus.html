@@ -1,0 +1,53 @@
+---
+layout: post
+title: Exposing Service metadata via HTTP Get on the Service Bus
+date: 2010-06-30 00:56:55.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Windows Azure AppFabric
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>.Net Service Bus currently doesn’t support exposing metadata via HTTP Get. Currently it only supports WS-MetadataExchange based metadata generation. I explored various options and came with following solution which seems to be working fine.</p>
+<ul>
+<li>Expose a REST endpoint with HTTP Get enabled </li>
+<li>From the implementation of this endpoint, forward the request to <em>real </em>HTTP Get endpoint </li>
+<li>Send the response data back to the client via Service Bus</li>
+<li>I have also used the new .Net 4.0 UseRequestHeadersForMetadataAddressBehavior to fix the port and host name in the generated WSDL file </li>
+</ul>
+<p>I have packaged all of the above in a custom service behaviour and you can now enable this feature by simply adding this behaviour (line 16) to your service host.</p>
+<p>&#160;
+<div style="display:inline;float:none;margin:0;padding:0;" id="scid:9ce6104f-a9aa-4a17-a79f-3a39532ebf7c:e717e6ab-026a-4986-870b-fbf0e8c6079d" class="wlWriterEditableSmartContent">
+<div class="le-pavsc-container">
+<div style="background:#ddd;max-height:300px;overflow:auto;">
+<ol style="background:#ffffff;margin:0 0 0 2.5em;padding:0 0 0 5px;">
+<li>    <span style="color:#0000ff;">var</span> cred = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">TransportClientEndpointBehavior</span>();</li>
+<li>    cred.CredentialType = <span style="color:#2b91af;">TransportClientCredentialType</span>.SharedSecret;</li>
+<li>&nbsp;</li>
+<li>    cred.Credentials.SharedSecret.IssuerName = <span style="color:#a31515;">&quot;owner&quot;</span>;</li>
+<li>    cred.Credentials.SharedSecret.IssuerSecret = <span style="color:#a31515;">&quot;SHARED-SECERET&quot;</span>;</li>
+<li>&nbsp;</li>
+<li>    <span style="color:#0000ff;">var</span> baseAddress = <span style="color:#2b91af;">ServiceBusEnvironment</span>.CreateServiceUri(<span style="color:#a31515;">&quot;http&quot;</span>, <span style="color:#a31515;">&quot;ServiceNAMESpace&quot;</span>, <span style="color:#a31515;">&quot;&quot;</span>);</li>
+<li>&nbsp;</li>
+<li>    <span style="color:#0000ff;">var</span> sh = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">ServiceHost</span>(<span style="color:#0000ff;">typeof</span>(<span style="color:#2b91af;">EchoService</span>), baseAddress);</li>
+<li> </li>
+<li>    <span style="color:#0000ff;">var</span> binding = <span style="color:#0000ff;">new</span> <span style="color:#2b91af;">WS2007HttpRelayBinding</span>(<span style="color:#2b91af;">EndToEndSecurityMode</span>.None,<span style="color:#2b91af;">RelayClientAuthenticationType</span>.None);</li>
+<li>    <span style="color:#0000ff;">var</span> endpoint = sh.AddServiceEndpoint(<span style="color:#0000ff;">typeof</span>(<span style="color:#2b91af;">IEchoService</span>), binding, <span style="color:#a31515;">&quot;Echo&quot;</span>);</li>
+<li>    endpoint.Behaviors.Add(cred);</li>
+<li>&nbsp;</li>
+<li>    <span style="color:#008000;">//Add SBMetadataBehavior to enable http get metadata via ServiceBus</span></li>
+<li>    sh.Description.Behaviors.Add(<span style="color:#0000ff;">new</span> <span style="color:#2b91af;">SBMetadataBehavior</span>(<span style="color:#a31515;">&quot;metadata&quot;</span>));</li>
+<li>&nbsp;</li>
+<li>    sh.Open();</li>
+</ol></div>
+</p></div>
+</p></div></p>
+<p>I have upload the <a href="http://cid-724b6fcd63a8c1ac.office.live.com/self.aspx/zamd.net/ServiceBusHttpGetMetadata.zip">complete solution</a> so feel free to download and experiment.</p>

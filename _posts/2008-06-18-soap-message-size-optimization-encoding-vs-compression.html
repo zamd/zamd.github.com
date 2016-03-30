@@ -1,0 +1,112 @@
+---
+layout: post
+title: 'SOAP message size optimization: Encoding vs compression'
+date: 2008-06-18 12:13:13.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_4f17c65538c8f2f37e9244ae0da4f860: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p class="MsoNormal"><font face="Tahoma"><font face="Verdana">Sometimes there is a requirement to reduce the size of the messages sent between client and service. Encoder is a WCF component which transforms a SOAP message (Infoset) into a byte stream and vice versa. Kenny has written</font> about</font> the different encoders available in WCF and I highly recommend reading his <a href="http://kennyw.com/indigo/200">post</a>.</p>
+<p class="MsoNormal">His post is focused on the performance characteristics of various encoders for various types of messages (with or without binary data). &nbsp;Here I will talk about other aspect of the encoders. i.e size of the encoded byte stream.</p>
+<p class="MsoNormal">Usually there are few requirements which derive your message size optimization options.</p>
+<ol>
+<li>
+<div class="MsoNormal">Whether you own both side of communication (client &amp; service) or not?</div>
+</li>
+<li>
+<div class="MsoNormal"><span style="font-family:Symbol;"><span><span style="font:7pt 'Times New Roman';">&nbsp;</span></span></span>Do you require XML(Infoset) representation on the wire?</div>
+</li>
+<li>
+<div class="MsoNormal">Deployment options</div>
+</li>
+</ol>
+<p class="MsoNormal">&nbsp;Let’s talk about various options in the light of above requirements.</p>
+<p class="MsoNormal">If you own both sides then the recommendation is to use binary encoding which is the default encoding with NetTcpBinding &amp; NetNamedPipeBinding. The XML structure on the wire will not preserved with this encoding however you will get huge savings in message size without writing any additional code. </p>
+<p class="MsoNormal">If byte stream produced by binary encoding still doesn’t meet your bandwidth constraint then you can think of applying compression on this byte stream. There is a compression encoder <a href="http://msdn.microsoft.com/en-us/library/ms751458.aspx">available</a> as part of WCF samples which you can use as a base to write your own compression encoder. Again this is only useful if wire format is not important to you.&nbsp;</p>
+<p class="MsoNormal">If you have a scenario in which message flows through intermediaries (e.g IBM DataPower) and certain policies are applied on the message (based on SOAP headers) then above options will not work. In these scenarios you can devise a scheme to only compress SOAP body and replace the actual body with compressed string (quite similar to XML encryption &amp; Digital Signature) while preserving SOAP headers. Pablo has <a href="http://weblogs.asp.net/cibrax/archive/2006/03/29/441398.aspx">created</a> a protocol (WS-Compression) to achieve this exact requirement. His sample is not updated to the latest version of WCF but you can get the idea by looking at the code. Also you can achieve this same functionality by extending WCF service model layer. For example, by writing a message inspector and doing compression there.&nbsp;</p>
+<p class="MsoNormal">I did a quick test of various encoding and compression choices and here are my findings. In my tests I have used a large dataset, consisting of 91 customer records, each having 1-20 orders and each order consist of 5-10 products. &nbsp;</p>
+<p class="MsoNormal"><img height="329" alt="cid:image002.png@01C8D13A.DE114040" src="{{ site.baseurl }}/assets/image0011.png" width="626" border="0" /></p>
+<table class="MsoNormalTable" style="margin-left:6.75pt;margin-right:6.75pt;border-collapse:collapse;" cellspacing="0" cellpadding="0" align="left" border="0">
+<tbody>
+<tr style="height:15pt;">
+<td style="border-right:windowtext 1pt solid;border-top:windowtext 1pt solid;background:#1f497d;border-left:windowtext 1pt solid;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><b><span style="color:white;">Encoding</span></b></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:windowtext 1pt solid;background:#1f497d;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap colspan="2">
+<p class="MsoNormal" style="text-align:center;" align="center"><b><span style="color:white;">Size</span></b></p>
+</td>
+</tr>
+<tr style="height:15pt;">
+<td style="border-right:windowtext 1pt solid;border-top:medium none;background:#1f497d;border-left:windowtext 1pt solid;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap></td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;background:#1f497d;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><b><span style="color:white;">Bytes</span></b></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;background:#1f497d;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><b><span style="color:white;">Kb</span></b></p>
+</td>
+</tr>
+<tr style="height:15pt;">
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:windowtext 1pt solid;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">Standard Text Encoding</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">1318179</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">1288</span></p>
+</td>
+</tr>
+<tr style="height:15pt;">
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:windowtext 1pt solid;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">Standard Binary Encoding</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">259141</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">253</span></p>
+</td>
+</tr>
+<tr style="height:15pt;">
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:windowtext 1pt solid;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">Gzip Compression using the compressing encoder&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">131242</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">128</span></p>
+</td>
+</tr>
+<tr style="height:15pt;">
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:windowtext 1pt solid;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">Gzip Compression using a custom compression channel</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">103428</span></p>
+</td>
+<td style="border-right:windowtext 1pt solid;border-top:medium none;border-left:medium none;border-bottom:windowtext 1pt solid;height:15pt;padding:0 5.4pt;" valign="bottom" nowrap>
+<p class="MsoNormal"><span style="color:black;">101</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal">As you can see there is huge size difference between text and binary encoding of xml messages. Note that in my testing there wasn’t any binary data in SOAP messages at all. If there would be some binary data then text encoded messages would be even bigger because of base64 encoding of binary data. So with binary encoding you can save lot of bandwidth without doing any custom coding and that’s why this should be the first choice.</p>
+<p class="MsoNormal">In addition to using a compression encoder you can also use IIS compression if you are hosting in IIS or WPAS (Windows Server 2008). IIS compression is pretty much similar to compression encoder option with the only different that in the former case compression is done by IIS while in later case it is done by a WCF encoder. IIS compression has the disadvantage that you need to configure compression separate to your WCF configuration (IIS metabase). &nbsp;Using a compression encoder or a custom compression channel also enables you to use a compression algorithm of your choice (based on your compression requirement) while IIS limits you to GZip compression only. In conclusion, the need for xml structure on the wire will be the deciding factor on what option will best suit you.</p>

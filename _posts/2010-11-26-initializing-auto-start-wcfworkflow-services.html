@@ -1,0 +1,34 @@
+---
+layout: post
+title: Initializing Auto-Start WCF/Workflow Services
+date: 2010-11-26 18:12:00.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Windows Server AppFabric
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p><a href="http://msdn.microsoft.com/en-us/library/ee677260.aspx">AppFabric AutoStart</a> feature is built on top of IIS 7.5 AutoStart feature. IIS 7.5 provides an <a href="http://www.iis.net/ConfigReference/system.applicationHost/serviceAutoStartProviders">extensibility point</a> where you can specify your custom initialization providers which will be executed as part of application start-up and gives you the ability to perform costly initialization. For example, pre-populating an AppFabric cache.</p>
+<p>Windows Server AppFabric uses this extensibility point to implement the AutoStart feature for WCF &amp; Workflow Services (XAMLX). As part of AppFabric installation, it registers a custom <a href="http://www.iis.net/ConfigReference/system.applicationHost/serviceAutoStartProviders">AutoStartProvider</a> which is responsible for activating all the services configured for AutoStart. Here is a simple flow diagram…</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/11/image.png"><img style="display:block;float:none;margin-left:auto;margin-right:auto;border-width:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="240" height="85" /></a>Activation of WCF/Workflow Services results in calling the ServiceHostFactory associated with the service to return an instance of the ServiceHost which would ultimately host the service and make it available to the clients. This behaviour opens up an option where you could put your costly initialization inside the custom ServiceHostFactory directly rather than using the IIS 7.5 extensibility. CreateServiceHost method of your custom factory will be invoked as soon as AppFabric auto starts your service.</p>
+<pre style="font-family:consolas;"><span style="color:blue;">public</span>&#160;<span style="color:blue;">class</span>&#160;<span style="color:#2b91af;">CustomXamlxHostFactory</span> : <span style="color:#2b91af;">WorkflowServiceHostFactory</span>&#160;&#160;&#160;&#160; </pre>
+<pre style="font-family:consolas;">{</pre>
+<pre style="font-family:consolas;">&#160;&#160;&#160;&#160;&#160; <span style="color:blue;">protected</span>&#160;<span style="color:blue;">override</span>&#160;<span style="color:#2b91af;">WorkflowServiceHost</span> CreateWorkflowServiceHost(<span style="color:#2b91af;">WorkflowService</span> service, <span style="color:#2b91af;">Uri</span>[] baseAddresses)</pre>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160; {</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span style="color:blue;">var</span> host = <span style="color:blue;">base</span>.CreateWorkflowServiceHost(service, baseAddresses);</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span style="color:green;">// Initialization logic: Populate AppFabric cache etc..</span> </p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span style="color:blue;">return</span> host;</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160; } </p>
+<p>}</p>
+<p>In .NET 4.0, a custom ServiceHostFactory can be easily associated with a service using the <a href="http://msdn.microsoft.com/en-us/library/ee816902.aspx">&lt;serviceActivations&gt;</a> element in the web.config.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2010/11/image1.png"><img style="display:inline;border-width:0;" title="image" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb1.png" width="640" height="76" /></a></p>
+<p>Check out my earlier <a href="http://zamd.net/2010/04/23/custom-servicehostfactory-for-a-xamlx-based-service-2/">post</a> for additional details…</p>

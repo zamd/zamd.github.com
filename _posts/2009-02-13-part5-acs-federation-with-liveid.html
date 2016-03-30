@@ -1,0 +1,56 @@
+---
+layout: post
+title: 'Part5: ACS Federation with LiveID'
+date: 2009-02-13 15:38:37.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- .NET Services
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Out of box ACS supports <b>live.com</b> as a trusted identity issuer which means we can use a token issued by <b>live.com</b> to login into ACS. Here I will show how can you achieve this using passive (browser based) federation.</p>
+<p class="MsoNormal">Inside<span style="color:#1F497D;"> </span><b><span style="font-size:10pt;font-family:\"Courier New\";">Application AuthenticateRequest</span></b><span style="font-size:10pt;font-family:\"Courier New\";"> </span>method of Global.asax I added following code redirect my web app to ACS to get a new token.</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">protected</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">void</span> Application AuthenticateRequest(<span style="color:blue;">object</span> sender, <span style="color:#2B91AF;">EventArgs</span> e)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> fam = <span style="color:#2B91AF;">HttpContext</span>.Current.ApplicationInstance.Modules[<span style="color:#A31515;">&quot;WSFederationAuthenticationModule&quot;</span>] <span style="color:blue;">as</span> <span style="color:#2B91AF;">WSFederationAuthenticationModule</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; fam.SignedIn += <span style="color:blue;">new</span> <span style="color:#2B91AF;">EventHandler</span>(fam SignedIn);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> identity = <span style="color:#2B91AF;">Thread</span>.CurrentPrincipal.Identity <span style="color:blue;">as</span> <span style="color:#2B91AF;">ClaimsIdentity</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (identity != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; fam.Realm = <span style="color:#A31515;">&quot;http://zamd.net/&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; fam.Reply = <span style="color:#A31515;">&quot;http://localhost:50037/WebForm1.aspx&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; fam.Issuer = <span style="color:#A31515;">@&quot;https://accesscontrol.windows.net/passivests/Eval01/livefederation.aspx&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> homeRealmSts = <span style="color:#A31515;">@&quot;http://login.live.com&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">String</span> uniqueId = <span style="color:#2B91AF;">Guid</span>.NewGuid().ToString();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">SignInRequestMessage</span> signInMsg = fam.CreateSignInRequest(uniqueId, fam.Realm, <span style="color:blue;">false</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; signInMsg.Parameters.Add(<span style="color:#A31515;">&quot;whr&quot;</span>, homeRealmSts);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:green;">// Redirect to the ACS passive STS for token issuance</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; Response.Redirect(signInMsg.RequestUrl);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">} </span></p>
+<p class="MsoNormal">Because here I specified live.com as my home realm, ACS will redirect me to live.com and actual login will take place there. After the succesful login, live.com will redirect me back to ACS with a token (issued by live.com). As ACS trusts this token, issued by live.com. It then runs it&#8217;s claims transformation logic (based on the claims issued by live.com) to generate a final token (issued by ACS). ACS then redirects the browser back to the Reply URI (my web app) along with final SAML token. Once back in my app, WSFederationAuthenticationModule, will see this new token and after verifying the issuer etc, it will use it to log me into my application.</p>
+<p class="MsoNormal">Inside <b><span style="font-size:10pt;font-family:\"Courier New\";">Application Start</span></b> method, I [mis]configured various bits to make it work on test environment. </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">protected</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">void</span> Application Start(<span style="color:blue;">object</span> sender, <span style="color:#2B91AF;">EventArgs</span> e)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">FederatedAuthentication</span>.ServiceCertificate = GetACSCert();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">FederatedAuthentication</span>.IssuerNameRegistry = <span style="color:blue;">new</span> <span style="color:#2B91AF;">TrustAllRegistry</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> saml11Handler = <span style="color:#2B91AF;">FederatedAuthentication</span>.SecurityTokenHandlers[<span style="color:blue;">typeof</span>(<span style="color:#2B91AF;">SamlSecurityToken</span>)] <span style="color:blue;">as</span> <span style="color:#2B91AF;">Saml11SecurityTokenHandler</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (saml11Handler != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saml11Handler.SamlSecurityTokenRequirement.AudienceUriMode = System.IdentityModel.Selectors.<span style="color:#2B91AF;">AudienceUriMode</span>.Never;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+</p></div>

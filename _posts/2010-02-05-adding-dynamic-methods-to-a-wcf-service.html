@@ -1,0 +1,123 @@
+---
+layout: post
+title: Adding Dynamic methods to a WCF Service
+date: 2010-02-05 16:25:46.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">Someone asked me if it’s possible to add a <i>Ping method</i> to every service contract without repeatedly defining it in each service contract?  The answer is yes &amp; and it’s fairly simply too. </p>
+<p class="MsoNormal">Here I have a LoginService, which require that implicit Ping method (<span style="font-size:12pt;font-family:\"Courier New\";color:#2B91AF;">DateTime</span><span style="font-size:12pt;font-family:\"Courier New\";"> Ping(){})</span>like all other service. </p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">[<span style="color:#2B91AF;">ServiceContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:blue;">class</span><span style="font-size:12pt;font-family:\"Courier New\";"> <span style="color:#2B91AF;">LoginService</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    [<span style="color:#2B91AF;">OperationContract</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">bool</span> Login(<span style="color:blue;">string</span> userName, <span style="color:blue;">string</span> password)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">return</span> <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal">This is how you would configure your host for these implicit methods. </p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:blue;">class</span><span style="font-size:12pt;font-family:\"Courier New\";"> <span style="color:#2B91AF;">Program</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">var</span> sh = <span style="color:blue;">new</span> <span style="color:#2B91AF;">ServiceHost</span>(<span style="color:blue;">typeof</span>(<span style="color:#2B91AF;">LoginService</span>), <span style="color:blue;">new</span> <span style="color:#2B91AF;">Uri</span>(<span style="color:#A31515;">"http://localhost:9001"</span>));</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="background:yellow;">GeneratePingMethod(sh);</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        sh.Open();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:#2B91AF;">Console</span>.ReadLine();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        sh.Close();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal">Please note “GeneratePingMethod” adds the Ping method to every endpoint.  I’m simply creating the operation using the WCF description API and adding it into the description tree. <span style="font-size:12pt;font-family:\"Courier New\";color:#2B91AF;">PingImplementationBehavior </span>plugs in a custom OperationInvoker which calls the actual Ping implementation.</p>
+<p class="MsoNormal"> </p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:blue;">private</span><span style="font-size:12pt;font-family:\"Courier New\";"> <span style="color:blue;">static</span> <span style="color:blue;">void</span> GeneratePingMethod(<span style="color:#2B91AF;">ServiceHost</span> sh)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">foreach</span> (<span style="color:blue;">var</span> endpoint <span style="color:blue;">in</span> sh.Description.Endpoints)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">var</span> cd = endpoint.Contract;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">var</span> od = <span style="color:blue;">new</span> <span style="color:#2B91AF;">OperationDescription</span>(<span style="color:#A31515;">"Ping"</span>, cd);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">var</span> inputMsg = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MessageDescription</span>(cd.Namespace + cd.Name + <span style="color:#A31515;">"/Ping"</span>, <span style="color:#2B91AF;">MessageDirection</span>.Input);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">var</span> outputMsg = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MessageDescription</span>(cd.Namespace + cd.Name + <span style="color:#A31515;">"/PingResponse"</span>, <span style="color:#2B91AF;">MessageDirection</span>.Output);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">var</span> retVal = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MessagePartDescription</span>(<span style="color:#A31515;">"PingResult"</span>, cd.Namespace); ;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        retVal.Type = <span style="color:blue;">typeof</span>(<span style="color:#2B91AF;">DateTime</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        outputMsg.Body.ReturnValue = retVal;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        od.Messages.Add(inputMsg);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        od.Messages.Add(outputMsg);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        od.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2B91AF;">DataContractSerializerOperationBehavior</span>(od));</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        od.Behaviors.Add(<span style="color:blue;background:yellow;">new</span><span style="background:yellow;"> <span style="color:#2B91AF;">PingImplementationBehavior</span>());</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        cd.Operations.Add(od);</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:blue;">class</span><span style="font-size:12pt;font-family:\"Courier New\";"> <span style="color:#2B91AF;">PingImplementationBehavior</span> : <span style="color:#2B91AF;">IOperationBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> AddBindingParameters(<span style="color:#2B91AF;">OperationDescription</span> operationDescription, <span style="color:#2B91AF;">BindingParameterCollection</span> bindingParameters)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    { }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2B91AF;">OperationDescription</span> operationDescription, <span style="color:#2B91AF;">ClientOperation</span> clientOperation)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    { }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2B91AF;">OperationDescription</span> operationDescription, <span style="color:#2B91AF;">DispatchOperation</span> dispatchOperation)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="background:yellow;">dispatchOperation.Invoker = <span style="color:blue;">new</span> <span style="color:#2B91AF;">PingInvoker</span>();</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2B91AF;">OperationDescription</span> operationDescription)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    { }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal">Again a fairly simple invoker which is tightly coupled to the signature of Ping method.</p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";color:blue;">class</span><span style="font-size:12pt;font-family:\"Courier New\";"> <span style="color:#2B91AF;">PingInvoker</span> : <span style="color:#2B91AF;">IOperationInvoker</span></span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">object</span>[] AllocateInputs()</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:blue;">object</span>[0];</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">object</span> Invoke(<span style="color:blue;">object</span> instance, <span style="color:blue;">object</span>[] inputs, <span style="color:blue;">out</span> <span style="color:blue;">object</span>[] outputs)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        outputs = <span style="color:blue;">new</span> <span style="color:blue;">object</span>[0];</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">return</span> Ping();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:#2B91AF;">IAsyncResult</span> InvokeBegin(<span style="color:blue;">object</span> instance, <span style="color:blue;">object</span>[] inputs, <span style="color:#2B91AF;">AsyncCallback</span> callback, <span style="color:blue;">object</span> state)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2B91AF;">NotImplementedException</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">object</span> InvokeEnd(<span style="color:blue;">object</span> instance, <span style="color:blue;">out</span> <span style="color:blue;">object</span>[] outputs, <span style="color:#2B91AF;">IAsyncResult</span> result)</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2B91AF;">NotImplementedException</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">bool</span> IsSynchronous</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">get</span> { <span style="color:blue;">return</span> <span style="color:blue;">true</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";"> </span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    <span style="color:blue;">public</span> <span style="color:blue;">static</span> <span style="color:#2B91AF;">DateTime</span> Ping()</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    {</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">        <span style="color:blue;">return</span> <span style="color:#2B91AF;">DateTime</span>.Now;</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">    }</span></p>
+<p class="MsoNormal"><span style="font-size:12pt;font-family:\"Courier New\";">}</span></p>
+</p></div>

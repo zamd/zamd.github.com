@@ -1,0 +1,34 @@
+---
+layout: post
+title: AD RMS protection with Custom STS – Setting the scene
+date: 2013-06-19 23:33:29.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- AD RMS
+- Federation/STS
+- MSIPC
+tags: []
+meta:
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+  _oembed_6784ba8825d009ee7d98fd9513556c0e: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>In a world where device are exploding, the information protection becomes even more important. AD RMS provides an on-primses and cloud platform to protect documents. Protected documents can be freely distributed and the information protection platform ensures compliance and prevents unauthorized access. </p>
+<p>The developer story of AD RMS was significantly simplified with AD RMS SDK 2.x aka MSIPC. The original MSDRM API was an extremely complex and required specialized skills to program. Version 2.x of the SDK introduced a simple File Protection API which makes it super easy to incorporate IPC in custom solutions. The SDK comes with a native API and there is a <a href="http://code.msdn.microsoft.com/windowsdesktop/AD-RMS-SDK-20-Interop-eb3fbce7">managed sample wrapper</a> available as well. </p>
+<p>The on-premises AD RMS Server is implemented using a set of web services (asmx based) which provides keys, certificates &amp; license management infrastructure required to enable information protection. </p>
+<p>The flow starts with authenticating the user and once the user is authenticated &amp; authorized, key distribution is kicked off to enable protection/un-protection functionality. The default deployment of AD RMS is configured to use Windows Authentication – which means consumers of the protected contents must be part of the Active Directory. </p>
+<p>Sometime there are requirements to make protected content (protected docx) available to users who doesn’t live in your Active Directory – for example sharing the protected documents with a partner organization etc. </p>
+<p>Another scenario is where you own the users but they are stored in custom databases (SQL membership DB etc) rather than AD &amp; you want this user base to access protected contents using their existing credentials. </p>
+<p>To enable such scenarios, the AD RMS supports federated authentication using the standard WS-Federation protocol. There is useful <a href="http://technet.microsoft.com/en-us/library/cc771425(v=ws.10).aspx">step by step guide</a> on how to use AD FS to enable federated access with partners who doesn’t have AD RMS deployed. This guide covers the first scenario I mentioned above. </p>
+<p>To enable 2nd scenario,&#160; you would need to deploy a custom STS (e.g. thinktecture identity server) and integrate it with AD RMS infrastructure using standard trust management and claims transformation. </p>
+<p>The following figure shows the message flow used to acquire a license to un-protect a protected word document.</p>
+<p><a href="http://zuahmed.files.wordpress.com/2013/06/image.png"><img title="image" style="display:inline;border-width:0;" border="0" alt="image" src="{{ site.baseurl }}/assets/image_thumb.png" width="644" height="280" /></a></p>
+<p>In a future post, I’ll explain the details of enabling this scenario using ThinkTecture Identity Server as a custom STS.</p>

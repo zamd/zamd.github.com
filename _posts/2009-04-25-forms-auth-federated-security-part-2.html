@@ -1,0 +1,116 @@
+---
+layout: post
+title: Forms Auth & Federated Security (part 2)
+date: 2009-04-25 13:23:14.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- Federation/STS
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><a href="http://www.zamd.net/2009/04/15/IntegratingFormsAuthenticationAndFederatedSecurity.aspx">Here</a> I talked about an approach that you can use to integrate your <em>legacy</em><em><span style="font-family:Wingdings;">J</span> </em> forms auth applications with STS and bring them into the world of federated security.    </p>
+<p class="MsoNormal">One major hurdle in implementing this approach is to flow Forms Auth cookie to the STS so that it can authenticate the caller and can issue a token. With <a href="http://msdn.microsoft.com/en-us/library/ms731374.aspx">wsFederationHttpBinding</a>, you don’t directly talk to the STS rather federation binding talks to the STS as part of your service call.  After wsFederationHttpBinding successfully acquired a token, only then your service is called and token is sent as part of the call. This is good because it hides all the token acquisition/forwarding complexity from you and offers you a simple programming model. </p>
+<p class="MsoNormal">Now in our case, we need to intercept the messages sent by FedBinding to the STS so that we can send our Forms Auth cookie along with the message. </p>
+<p class="MsoNormal">At this point a very brief diagrammatic overview of WCF message security framework will help: </p>
+<p class="MsoNormal"><img src="{{ site.baseurl }}/assets/image0031.png" border="0" alt="" width="602" height="318" /> </p>
+<p class="MsoNormal">On the client side TokenProvider is responsible for providing tokens to message security layer. There is TokenProvider for each type of type (Usernname, IssuedToken etc). </p>
+<p class="MsoNormal"><a href="http://www.zamd.net/2008/07/11/SAMLTokenRequestor.aspx">IssuedSecurityTokenProvider</a> is used when a SAML token is required by the message security layer and this is the guy we need to intercept. </p>
+<p class="MsoNormal">Let’s start by creating a custom ClientCredentials: </p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">public</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:blue;">class</span> <span style="color:#2b91af;">ClientCredentialsWrapper</span> : <span style="color:#2b91af;">ClientCredentials</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> ClientCredentialsWrapper()</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {}</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> ClientCredentialsWrapper(<span style="color:#2b91af;">ClientCredentials</span> other):<span style="color:blue;">base</span>(other)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {}</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">SecurityTokenManager</span> CreateSecurityTokenManager()</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">ClientSecurityTokenManagerWrapper</span>(<span style="color:blue;">this</span>);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">ClientCredentials</span> CloneCore()</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">ClientCredentialsWrapper</span>(<span style="color:blue;">this</span>);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}</span> </p>
+<p class="MsoNormal">Next our custom SecurityTokenManager: </p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">class</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:#2b91af;">ClientSecurityTokenManagerWrapper</span> : <span style="color:#2b91af;">ClientCredentialsSecurityTokenManager</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> ClientSecurityTokenManagerWrapper(<span style="color:#2b91af;">ClientCredentials</span> parent)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        : <span style="color:blue;">base</span>(parent)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    { }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2b91af;">SecurityTokenProvider</span> CreateSecurityTokenProvider(<span style="color:#2b91af;">SecurityTokenRequirement</span> tokenRequirement)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">var</span> provider = <span style="color:blue;">base</span>.CreateSecurityTokenProvider(tokenRequirement);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">var</span> issuedProvider = provider <span style="color:blue;">as</span> <span style="color:#2b91af;">IssuedSecurityTokenProvider</span>;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">if</span> (issuedProvider != <span style="color:blue;">null</span>)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            issuedProvider.IssuerChannelBehaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">MessageInspectorInstallerBehavior</span>());</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">return</span> provider;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}</span> </p>
+<p class="MsoNormal">Here I have added endpoint behaviour in the ChannelFactory used by IssuedSecurityTokenProvider to talk to STS. </p>
+<p class="MsoNormal">  </p>
+<p class="MsoNormal"> <span style="font-size:10pt;color:blue;font-family:'Courier New';">class</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:#2b91af;">MessageInspectorInstallerBehavior</span> : <span style="color:#2b91af;">IEndpointBehavior</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> AddBindingParameters(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">BindingParameterCollection</span> bindingParameters)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    { }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">ClientRuntime</span> clientRuntime)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        clientRuntime.MessageInspectors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">CookieFlowMessageInspector</span>());</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint, <span style="color:#2b91af;">EndpointDispatcher</span> endpointDispatcher)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    { }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2b91af;">ServiceEndpoint</span> endpoint)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    { }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}</span> </p>
+<p class="MsoNormal">Here I’m simply installing a MessageInspector which looks like this: </p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">class</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:#2b91af;">CookieFlowMessageInspector</span> : <span style="color:#2b91af;">IClientMessageInspector</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">void</span> AfterReceiveReply(<span style="color:blue;">ref</span> <span style="color:#2b91af;">Message</span> reply, <span style="color:blue;">object</span> correlationState)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    { }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">public</span> <span style="color:blue;">object</span> BeforeSendRequest(<span style="color:blue;">ref</span> <span style="color:#2b91af;">Message</span> request, <span style="color:#2b91af;">IClientChannel</span> channel)</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    {</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">object</span> prop = <span style="color:blue;">null</span>;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:#2b91af;">HttpRequestMessageProperty</span> rmp = <span style="color:blue;">null</span>;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">if</span> (request.Properties.TryGetValue(<span style="color:#2b91af;">HttpRequestMessageProperty</span>.Name, <span style="color:blue;">out</span> prop))</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            rmp = prop <span style="color:blue;">as</span> <span style="color:#2b91af;">HttpRequestMessageProperty</span>;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">else</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">            rmp = <span style="color:blue;">new</span> <span style="color:#2b91af;">HttpRequestMessageProperty</span>();</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        rmp.Headers[<span style="color:#2b91af;">HttpRequestHeader</span>.Cookie] = <span style="color:#2b91af;">FormAuthUtility</span>.GetCookieHeaderFromRequest();</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        request.Properties[<span style="color:#2b91af;">HttpRequestMessageProperty</span>.Name] = rmp;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">        <span style="color:blue;">return</span> <span style="color:blue;">null</span>;</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    }</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}</span> </p>
+<p class="MsoNormal">Client code will stay the same and you just have to call just one extension method to hook everything together. </p>
+<p class="MsoNormal"> <span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> proxy = <span style="color:blue;">new</span> STSCookieServiceReference.<span style="color:#2b91af;">EchoServiceClient</span>();</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> certPath = <span style="color:#2b91af;">HttpContext</span>.Current.Server.MapPath(<span style="color:#a31515;">"~/localhost.cer"</span>);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">proxy.ClientCredentials.ServiceCertificate.DefaultCertificate = <span style="color:blue;">new</span> <span style="color:#2b91af;">X509Certificate2</span>(certPath);</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">proxy.<span style="background:yellow;">EnableIssuedTokenProviderCookieFlow</span>();</span><span style="font-size:10pt;font-family:'Courier New';"> </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">proxy.Echo(<span style="color:#a31515;">"Welcome."</span>);</span> </p>
+<p class="MsoNormal">And this is how extension method is implemented. </p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">public</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:blue;">static</span> <span style="color:blue;">void</span> EnableIssuedTokenProviderCookieFlow&lt;TChannel&gt;(<span style="color:blue;">this</span> <span style="color:#2b91af;">ClientBase</span>&lt;TChannel&gt; source) <span style="color:blue;">where</span> TChannel : <span style="color:blue;">class</span></span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span><span style="font-size:10pt;font-family:'Courier New';">    </span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    <span style="color:blue;">var</span> orignal = source.Endpoint.Behaviors.Remove&lt;<span style="color:#2b91af;">ClientCredentials</span>&gt;();</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">    source.Endpoint.Behaviors.Add(<span style="color:blue;">new</span> <span style="color:#2b91af;">ClientCredentialsWrapper</span>(orignal));</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">}</span> </p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">I have attached complete solution with this post. Feel free to download and have a look. </span> </p>
+<p class="MsoNormal">  </p>
+<p class="MsoNormal">  </p>
+<p>Download: <a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/FormsAuthFedSecurity.zip">FormsAuthFedSecurity.zip</a><br />
+ </p>
+</div>

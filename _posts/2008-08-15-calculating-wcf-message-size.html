@@ -1,0 +1,123 @@
+---
+layout: post
+title: Calculating WCF Message Size
+date: 2008-08-15 14:46:31.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_f4def11643f32798e743f81830c507e7: '{{unknown}}'
+  _oembed_5d12c13bc131e915611c18b761010dd5: '{{unknown}}'
+  _oembed_4d85047d3f4e111d3713d1d2f25198cc: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><a href="http://www.zamd.net/2008/06/18/SOAPMessageSizeOptimizationEncodingVsCompression.aspx">Here</a> I have talked about various encoding options and their impact on the message size (byte stream produced by WCF). The question is how you can measure the size of the byte stream produced by WCF?</p>
+<p class="MsoNormal">Size of the byte stream depends on the encoder being used and different encoder produced byte stream of different sizes.</p>
+<p class="MsoNormal">I have written a MessageInspector, which does message/stream rewriting to calculate the size of the final byte stream. Once you have configured this inspector in your client it will print the difference in the size of message created by text encoder vs your configured encoder (MTOM, Binary or GZip). &nbsp;Send method of Inspector looks like following:</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">public</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">object</span> BeforeSendRequest(<span style="color:blue;">ref</span> System.ServiceModel.Channels.<span style="color:#2B91AF;">Message</span> request, <span style="color:#2B91AF;">IClientChannel</span> channel)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> mb = request.CreateBufferedCopy(<span style="color:blue;">int</span>.MaxValue);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; request = mb.CreateMessage();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> ms = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MemoryStream</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:green;">// Dump message size based on text encoder.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">using</span> (<span style="color:blue;">var</span> memWriter = <span style="color:#2B91AF;">XmlDictionaryWriter</span>.CreateTextWriter(ms))</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mb.CreateMessage().WriteMessage(memWriter);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; memWriter.Flush();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.WriteLine(<span style="color:#A31515;">&quot;Message size using text encoder {0}&quot;</span>, ms.Position);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; ms = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MemoryStream</span>(); </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (gzipEncoding != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {<span style="color:green;">// GZip Special case</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> encoder = gzipEncoding.CreateMessageEncoderFactory().CreateSessionEncoder();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; encoder.WriteMessage(mb.CreateMessage(), ms);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.WriteLine(<span style="color:#A31515;">&quot;GZip encoded size {0}&quot;</span>, ms.Position);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">null</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:green;">// just wrap the message - and wrapper will do the trick.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="background:aqua;">request = <span style="color:blue;">new</span> <span style="color:#2B91AF;">WrappingMessage</span>(request);</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">return</span> <span style="color:blue;">null</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal"><span lang="EN-GB" style="color:#404040;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">public</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">class</span> <span style="color:#2B91AF;">WrappingMessage</span> : <span style="color:#2B91AF;">Message</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Message</span> innerMsg;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">MessageBuffer</span> msgBuffer;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> WrappingMessage(<span style="color:#2B91AF;">Message</span> inner)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.innerMsg = inner;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; msgBuffer = innerMsg.CreateBufferedCopy(<span style="color:blue;">int</span>.MaxValue);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; innerMsg = msgBuffer.CreateMessage();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2B91AF;">MessageHeaders</span> Headers</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">get</span> { <span style="color:blue;">return</span> innerMsg.Headers; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">void</span> OnWriteBodyContents(<span style="color:#2B91AF;">XmlDictionaryWriter</span> writer)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; innerMsg.WriteBodyContents(writer);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2B91AF;">MessageProperties</span> Properties</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">get</span> { <span style="color:blue;">return</span> innerMsg.Properties; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">override</span> <span style="color:#2B91AF;">MessageVersion</span> Version</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">get</span> { <span style="color:blue;">return</span> innerMsg.Version; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp; &nbsp;&nbsp;<span style="color:blue;">protected</span> <span style="color:blue;">override</span> <span style="color:blue;">void</span> OnWriteMessage(<span style="color:#2B91AF;">XmlDictionaryWriter</span> writer)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// write message to the actual stream using encoder..</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">base</span>.OnWriteMessage(writer);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.Flush();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// write message to MemoryStream (using encoder) to get it's size.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> copy = msgBuffer.CreateMessage();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:aqua;">DumpEncoderSize(writer, copy);</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> DumpEncoderSize(System.Xml.<span style="color:#2B91AF;">XmlDictionaryWriter</span> writer, <span style="color:#2B91AF;">Message</span> copy)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> ms = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MemoryStream</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">string</span> configuredEncoder = <span style="color:blue;">string</span>.Empty;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (writer <span style="color:blue;">is</span> <span style="color:#2B91AF;">IXmlTextWriterInitializer</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> w = (<span style="color:#2B91AF;">IXmlTextWriterInitializer</span>)writer;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; w.SetOutput(ms, <span style="color:#2B91AF;">Encoding</span>.UTF8, <span style="color:blue;">true</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; configuredEncoder = <span style="color:#A31515;">&quot;Text&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">else</span> <span style="color:blue;">if</span> (writer <span style="color:blue;">is</span> <span style="color:#2B91AF;">IXmlMtomWriterInitializer</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> w = (<span style="color:#2B91AF;">IXmlMtomWriterInitializer</span>)writer;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:aqua;">w.SetOutput(ms, <span style="color:#2B91AF;">Encoding</span>.UTF8, <span style="color:blue;">int</span>.MaxValue, <span style="color:#A31515;">&quot;&quot;</span>, <span style="color:blue;">null</span>, <span style="color:blue;">null</span>, <span style="color:blue;">true</span>, <span style="color:blue;">false</span>);</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; configuredEncoder = <span style="color:#A31515;">&quot;MTOM&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">else</span> <span style="color:blue;">if</span> (writer <span style="color:blue;">is</span> <span style="color:#2B91AF;">IXmlBinaryWriterInitializer</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> w = (<span style="color:#2B91AF;">IXmlBinaryWriterInitializer</span>)writer;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; w.SetOutput(ms, <span style="color:blue;">null</span>, <span style="color:blue;">null</span>, <span style="color:blue;">false</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; configuredEncoder = <span style="color:#A31515;">&quot;Binary&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:aqua;">copy.WriteMessage(writer);</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.Flush();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> size = ms.Position;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Console</span>.WriteLine(<span style="color:#A31515;">&quot;Message size using configured ({1}) encoder {0}&quot;</span>,&nbsp; size,configuredEncoder);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">}</span></p>
+<p class="MsoNormal">I have attached complete solution with this post.</p>
+</p></div>
+<p>Download: <a href="http://cid-724b6fcd63a8c1ac.skydrive.live.com/self.aspx/zamd.net/MessageSize.zip">MessageSize.zip</a></p>

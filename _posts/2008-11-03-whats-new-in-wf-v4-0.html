@@ -1,0 +1,47 @@
+---
+layout: post
+title: What's new in WF v4.0
+date: 2008-11-03 10:42:36.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- WF
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">At the PDC .net Framework 4.0 was announced which will be released along with Visual Studio 2010. Along with .Net Framework 4.0, a new version of Windows Workflow Foundation (WF v4.0) will also be released. This version of WF is greatly improved and enhanced compared to the 1<sup>st</sup> version (released with .net Framework 3.0). These enhancements address performance and scalability issues along with few key customer scenarios (XAML only workflows, transaction flow etc).</p>
+<p class="MsoNormal">Here are some of the highlights of WF v4.0</p>
+<blockquote style="margin-right:0;"><p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>First class support for authoring XAML only workflows. </p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Rich Activity Data Model which eliminates the need for falling back to code.</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Simplified Activity Authoring: In this new model there are two ways to author activities:</p>
+<p class="MsoListParagraph" style="margin-left:72pt;text-indent:-18pt;"><span style="font-family:'Courier New';"><span>o<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp; </span></span></span>WorklfowElement based authoring mechanism: Exposes the richness and breadth of workflow runtime to the activities.</p>
+<p class="MsoListParagraph" style="margin-left:72pt;text-indent:-18pt;"><span style="font-family:'Courier New';"><span>o<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp; </span></span></span>Activity based authoring: Enables a declarative activity authoring (primarily by encapsulating other activities as part of activity definition).</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Several WorkflowRuntime enhancements:</p>
+<p class="MsoListParagraph" style="margin-left:72pt;text-indent:-18pt;"><span style="font-family:'Courier New';"><span>o<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp; </span></span></span>Much better support for high frequency dispatch scenarios. This is done by updating the internal scheduler’s machinery.</p>
+<p class="MsoListParagraph" style="margin-left:72pt;text-indent:-18pt;"><span style="font-family:'Courier New';"><span>o<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp; </span></span></span>Support for no-persist zones. This is extremely useful and much demanded feature for Asynchronous scenarios.</p>
+<p class="MsoListParagraph" style="margin-left:72pt;text-indent:-18pt;"><span style="font-family:'Courier New';"><span>o<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp; </span></span></span>Support for transaction flow into workflow runtime. E.g If when a transaction is flown as part of a WCF call, WF now can use that transaction in its workflow logic.</p>
+<p class="MsoListParagraph" style="margin-left:72pt;text-indent:-18pt;"><span style="font-family:'Courier New';"><span>o<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp; </span></span></span>Support for both Text and Binary serialization for the Persistence service. (WCF DataContract Serializer is now used for Serialization).</p>
+<p class="MsoListParagraph" style="margin-left:108pt;text-indent:-18pt;"><span style="font-family:Wingdings;"><span>§<span style="font:7pt 'Times New Roman';">&nbsp; </span></span></span>Support for extracting workflow state as part of persistence and store in a query able relational form.</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Distributed compensation using the <b>WS-BussinessActivity</b>.</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Partial Trust support</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Rules are now tightly integrated with activities and are executed in the same way as activities (no more CodeDom statements/expressions).</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>New WPF based workflow and activity designers. (Writing a custom designer is now a breeze – killer GDI+ expertise not needed anymore <span style="font-family:Wingdings;">J</span>)</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Rich set of new activities (Database access, PowerShell etc)</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Support of FlowChart workflow type.</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Programming Model Alignment with WCF. (Support for WCF extension model as a replacement for WF Service Provider/ Service Container).</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Better integration among WF,WCF &amp; WPF for writing composite application.</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Support for new enhanced Expression syntax (derived from VB).</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Dependency Properties are removed and new Activity Data Model is the preferred way to represent state and argument in activities.</p>
+<p class="MsoListParagraph" style="text-indent:-18pt;"><span style="font-family:Symbol;"><span>·<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span>Plus much more ...</p>
+</blockquote>
+<p class="MsoNormal">All of this goodness come with cost which is: WF 4.0 is not backward compatible with WF 1.0. However WF v4.0 will support side by side execution with WF v1.0 and there will be an Interop activity which will let you execute any WF 1.0 activity inside a WF v4.0 workflow.</p>
+<p class="MsoNormal">In next few weeks I will talk more about these enhancements as I explore so stay tuned ...</p>
+</div>

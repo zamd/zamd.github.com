@@ -1,0 +1,34 @@
+---
+layout: post
+title: RFID Stock Management–Architecture & Challenges
+date: 2014-09-12 08:19:52.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Architecture
+- Couchbase
+- Redis
+tags: []
+meta:
+  publicize_linkedin_url: http://www.linkedin.com/updates?discuss=&scope=9788649&stype=M&topic=5916107709219897344&type=U&a=Uyxr
+  _wpas_done_1982054: '1'
+  _publicize_done_external: a:1:{s:8:"linkedin";a:1:{s:10:"9w6qkgZkkl";b:1;}}
+  _edit_last: '13661190'
+  geo_public: '0'
+  _wpas_skip_1982054: '1'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<p>I’m currently working on an RFID based stock management solution – The high level goals of the solution is to ensure, the stock shown on the computer is the stock available in the store, correct products (in correct quantities) are displayed on the shop floor &amp; to reduce stock loss by having a real-time visibility of what’s passing through the tills before it’s taken out of the store. As a start we are only doing this for clothing products where our items are source (factory) tagged with RFID tags and these items are then tracked from deliveries to sale &amp; returns using various types of RFID readers like Handhelds, Fixed Portals, Security Gates and Click &amp; Collect readers etc.</p>
+<p>The hardware side of project is interesting but it’s mostly off the shelf readers &amp; gates supplied by Motorola, Checkpoint &amp; Nedap. These readers are doing the bulk of work and we run a simple integration agent on top of them to connect them to our software backend.</p>
+<p>Our software backend is SOA based (REST) web services built with ASP.NET Web API &amp; hosted on Windows. From design &amp; implementation perspective, we use CQS, DDD &amp; Event Sourcing and our domain entities are persisted (using NHibernate) in Oracle (Exadata) which is our master data store. We use SpecFlow/NCrunch to automate our acceptance testing and NUnit for unit testing.</p>
+<p>We started this as a typical .NET project and had interesting challenges around performance &amp; latency on the read path, which pushed us to do more &amp; more work on the asynchronous write path. We started to separate our read &amp; write stores and decided to build the read store completely in the cache based on the event stream we capture on the write pathh. We started with Couchbase with it’s memcached Data Bucket as our first choice for read store– Couchbase is a great technology, it converges the key-value &amp; document store models into one great product. I love the power &amp; simplicity of it’s map/reduce framework.</p>
+<p>For us the Couchbase didn’t work as well as our latency was still high because of the computation involved on huge list of stock data. We needed to bring data streams from the cache into our service and compute variances and categorization etc and then store the computed results back in the cache.</p>
+<p>Our next choice was Redis, the Sorted Set data structure in Redis aligned nicely with the data model we need to store &amp; compute. I'm extremely impressed with the power of Redis and ability to run computation in the cache is exactly what we needed. Most of our computation can be done with a single union or intersection command on sorted sets which is a sub millisecond operation. We are actively building on this model and in future posts, I’ll share more details on our architecture and specifics of Redis usage. Our high level architecture looks like this…</p>
+<p>&nbsp;</p>
+<p><a href="https://zuahmed.files.wordpress.com/2014/09/image.png"><img style="background-image:none;padding-top:0;padding-left:0;display:inline;padding-right:0;border:0;" title="image" src="{{ site.baseurl }}/assets/image_thumb.png" alt="image" width="644" height="346" border="0" /></a></p>

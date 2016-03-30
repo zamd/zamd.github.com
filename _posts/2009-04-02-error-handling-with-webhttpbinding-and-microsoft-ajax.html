@@ -1,0 +1,63 @@
+---
+layout: post
+title: Error handling with WebHttpBinding and Microsoft Ajax
+date: 2009-04-02 16:26:59.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- Ajax
+- WCF
+tags: []
+meta:
+  _edit_last: '13661190'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p><span style="font-size:10pt;font-family:Verdana,sans-serif;color:#003300;"><a href="http://zamd.net/2008/07/08/error-handling-with-webhttpbinding-for-ajaxjson/">Here</a>&nbsp;I talked about a technique to convert SOAP faults into JSON objects for AJAX scenarios. The post was primarily&nbsp;around using <i>WCF extensibility to send back exception details as JSON object with a particular HTTP status code</i>. The code will only works with native XMLHttpRequest object or with a library which returns bare HTTP response (Ext JS, jQuery etc). </span></p>
+<p><span style="font-size:10pt;font-family:Verdana,sans-serif;color:#003300;">Microsoft AJAX library (generated JavaScript proxy) uses a well defined error format and will not understand the custom format I have used. So it will just ignore our custom error object and will return a generic error object to the onFailed callback.</span></p>
+<p><span style="font-size:10pt;font-family:Verdana,sans-serif;color:#003300;">For our server side extensibility feature to work with Microsoft AJAX library, we need to change our service's error format to match to the format expected by&nbsp;Microsoft AJAX library which can easily be modelled using following DataContract.</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">[<span style="color:#2B91AF;">DataContractFormat</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">public</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">class</span> <span style="color:#2B91AF;">MicrosoftAjaxError</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> Message { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> ExceptionType { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; [<span style="color:#2B91AF;">DataMember</span>]</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">string</span> StackTrace { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</span></p>
+<p><span style="font-size:10pt;font-family:\"Courier New\";">}</span></p>
+<p><span style="font-size:10pt;font-family:Verdana,sans-serif;color:#003300;">Now from our handler, we need to send back an instance of MicrosoftAjaxError class rather than our own error object. Here is the modified ProvideFault method.</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";color:blue;">public</span><span style="font-size:10pt;font-family:\"Courier New\";"> <span style="color:blue;">void</span> ProvideFault(</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:#2B91AF;">Exception</span> error, <span style="color:#2B91AF;">MessageVersion</span> version, <span style="color:blue;">ref</span> <span style="color:#2B91AF;">Message</span> fault)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (error <span style="color:blue;">is</span> <span style="color:#2B91AF;">FaultException</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// extract the our FaultContract object from the exception object.</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> detail = error.GetType().GetProperty(<span style="color:#A31515;">&quot;Detail&quot;</span>).GetGetMethod().Invoke(error, <span style="color:blue;">null</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;background:yellow;">var</span><span style="background:yellow;"> msErrObject = <span style="color:blue;">new</span> <span style="color:#2B91AF;">MicrosoftAjaxError</span> { Message = <span style="color:#A31515;">&quot;Fault exception...&quot;</span>, ExceptionType = detail.GetType().ToString(), StackTrace = error.StackTrace };</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// create a fault message containing our FaultContract object</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault = <span style="color:#2B91AF;">Message</span>.CreateMessage(version, <span style="color:#A31515;">&quot;&quot;</span>, <span style="background:yellow;">msErrObject</span>, <span style="color:blue;">new</span> <span style="color:#2B91AF;">DataContractJsonSerializer</span>(<span style="background:yellow;">msErrObject.GetType()</span>));</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// tell WCF to use JSON encoding rather than default XML</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> wbf = <span style="color:blue;">new</span> <span style="color:#2B91AF;">WebBodyFormatMessageProperty</span>(<span style="color:#2B91AF;">WebContentFormat</span>.Json);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault.Properties.Add(<span style="color:#2B91AF;">WebBodyFormatMessageProperty</span>.Name, wbf);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">var</span> rmp = <span style="color:blue;">new</span> <span style="color:#2B91AF;">HttpResponseMessageProperty</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:yellow;">rmp.Headers[<span style="color:#2B91AF;">HttpResponseHeader</span>.ContentType] = <span style="color:#A31515;">&quot;application/json&quot;</span>;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";background:yellow;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.Headers[<span style="color:#A31515;">&quot;jsonerror&quot;</span>] = <span style="color:#A31515;">&quot;true&quot;</span>;</span><span style="font-size:10pt;font-family:\"Courier New\";"></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.StatusCode = System.Net.<span style="color:#2B91AF;">HttpStatusCode</span>.BadRequest;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:green;">// put appropraite description here..</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rmp.StatusDescription = <span style="color:#A31515;">&quot;See fault object for more information.&quot;</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fault.Properties.Add(<span style="color:#2B91AF;">HttpResponseMessageProperty</span>.Name, rmp);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:\"Courier New\";">}</span></p>
+</p></div>

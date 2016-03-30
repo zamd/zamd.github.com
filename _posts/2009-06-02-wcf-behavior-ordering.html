@@ -1,0 +1,73 @@
+---
+layout: post
+title: WCF Behavior Ordering
+date: 2009-06-02 13:39:43.000000000 +06:00
+type: post
+published: true
+status: publish
+categories:
+- WCF
+tags: []
+meta: {}
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal">WCF behaviours are applied based on a particular evaluation order. Exact details are available <a href="http://msdn.microsoft.com/en-us/library/ms730137.aspx">here</a>&nbsp;</p>
+<table class="MsoTableGrid" style="border-right:medium none;border-top:medium none;background:#eeece1;border-left:medium none;border-bottom:medium none;border-collapse:collapse;" cellspacing="0" cellpadding="0" border="1">
+<tbody>
+<tr>
+<td style="border-right:black 1pt solid;border-top:black 1pt solid;border-left:black 1pt solid;width:478.8pt;border-bottom:black 1pt solid;padding:0 5.4pt;" valign="top" width="638">
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;"><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;">The </span><b><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;">ServiceHost</span></b><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;"> applies behaviors in the following order:</span></p>
+<p class="MsoNormal" style="margin-bottom:12pt;margin-left:36pt;vertical-align:top;text-indent:-18pt;line-height:140%;"><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;"><span>1.<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;">Contract</span></p>
+<p class="MsoNormal" style="margin-bottom:12pt;margin-left:36pt;vertical-align:top;text-indent:-18pt;line-height:140%;"><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;"><span>2.<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;">Operation</span></p>
+<p class="MsoNormal" style="margin-bottom:12pt;margin-left:36pt;vertical-align:top;text-indent:-18pt;line-height:140%;"><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;"><span>3.<span style="font:7pt 'Times New Roman';">&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;">Endpoint</span></p>
+<ol type="1" start="4">
+<li class="MsoNormal" style="margin-bottom:12pt;vertical-align:top;line-height:140%;"><span style="font-size:8pt;color:black;line-height:140%;font-family:Verdana,sans-serif;">Service</span> </li>
+</ol>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;">Please note within any collection of behaviors, ordering is NOT guaranteed. Because of that sometimes when you configure some aspects of runtime in your custom behavior (for example, TransactionRequired property of the operation) – they get overwritten by default WCF behavior. For example, following will not work and <span style="font-size:10pt;line-height:140%;font-family:'Courier New';">TransactionRequired </span>will always be set to false (default value). <span style="font-size:10pt;line-height:140%;font-family:'Courier New';"></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">class</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:#2b91af;">TestBv</span> : <span style="color:#2b91af;">Attribute</span>, <span style="color:#2b91af;">IOperationBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> AddBindingParameters(<span style="color:#2b91af;">OperationDescription</span> operationDescription, <span style="color:#2b91af;">BindingParameterCollection</span> bindingParameters) { }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2b91af;">OperationDescription</span> operationDescription, <span style="color:#2b91af;">ClientOperation</span> clientOperation){}</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">OperationDescription</span> operationDescription, <span style="color:#2b91af;">DispatchOperation</span> dispatchOperation)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dispatchOperation.TransactionRequired = <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2b91af;">OperationDescription</span> operationDescription){}</span></p>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;"><span style="font-size:10pt;line-height:140%;font-family:'Courier New';">}</span></p>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;">Why? Because here WCF is executing default OperationBehavior after the execution of your custom behavior. Please note, missing<span style="font-size:10pt;line-height:140%;font-family:'Courier New';"> <b>OperationBehaviorAttribute </b></span>doesn’t mean that behavior won’t be applied at all rather it mean a default OperationBehavior will be applied.</p>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;">So how to fix this? </p>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;">Use explicit ordering: Remove the bahavior from the collection and apply it at a particular time yourself. Here is the modified behavior which will work correctly.</p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">class</span><span style="font-size:10pt;font-family:'Courier New';"> <span style="color:#2b91af;">TestBv</span> : <span style="color:#2b91af;">Attribute</span>, <span style="color:#2b91af;">IOperationBehavior</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">{</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:#2b91af;">IOperationBehavior</span> orignal;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> AddBindingParameters(<span style="color:#2b91af;">OperationDescription</span> operationDescription, <span style="color:#2b91af;">BindingParameterCollection</span> bindingParameters) { }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyClientBehavior(<span style="color:#2b91af;">OperationDescription</span> operationDescription, <span style="color:#2b91af;">ClientOperation</span> clientOperation){}</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> ApplyDispatchBehavior(<span style="color:#2b91af;">OperationDescription</span> operationDescription, <span style="color:#2b91af;">DispatchOperation</span> dispatchOperation)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background:yellow;">orignal.ApplyDispatchBehavior(operationDescription, dispatchOperation);</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dispatchOperation.TransactionRequired = <span style="color:blue;">true</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">public</span> <span style="color:blue;">void</span> Validate(<span style="color:#2b91af;">OperationDescription</span> operationDescription)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; {</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">this</span>.orignal = operationDescription.Behaviors.Find&lt;<span style="color:#2b91af;">OperationBehaviorAttribute</span>&gt;();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:blue;">if</span> (orignal != <span style="color:blue;">null</span>)</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; operationDescription.Behaviors.Remove(orignal);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; }</span></p>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;"><span style="font-size:10pt;line-height:140%;font-family:'Courier New';">}</span></p>
+<p class="MsoNormal" style="margin-bottom:11.25pt;vertical-align:top;line-height:140%;"><span style="font-size:10pt;line-height:140%;font-family:'Courier New';">HTH...</span></p>
+</div>

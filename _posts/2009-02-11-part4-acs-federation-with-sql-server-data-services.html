@@ -1,0 +1,82 @@
+---
+layout: post
+title: 'Part4: ACS Federation with Sql Server Data Services'
+date: 2009-02-11 21:30:15.000000000 +05:00
+type: post
+published: true
+status: publish
+categories:
+- .NET Services
+tags: []
+meta:
+  _edit_last: '13661190'
+  _oembed_836ea62c2fa2679f8ea01c4909f4c05b: '{{unknown}}'
+  _oembed_e168525c5711563811ef5625463cac76: '{{unknown}}'
+  _oembed_629ccb0ce1af097a19bcc77987db2f30: '{{unknown}}'
+  _oembed_a1722cb775bb8d5b29a3d12650ce9e35: '{{unknown}}'
+author:
+  login: zamd
+  email: zulfiqar.ahmed@gmail.com
+  display_name: zamd
+  first_name: ''
+  last_name: ''
+---
+<div class="Section1">
+<p class="MsoNormal"><span style="color:#1f497d;"><font color="#000000">Today I will show you how use a token issued by ACS to login into SDS using it’s SOAP API. Again two step process:</font></span></p>
+<p class="MsoNormal"><font color="#000000"><span style="color:#1f497d;"><font color="#000000">S</font></span><span style="color:#1f497d;"><font color="#000000">tep 1:</font> <font color="#000000">Get a token from ACS (using UserName/Passoword) for SDS.</font></span></font></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><font color="#000000">&nbsp;</font></span><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> binding = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSHttpBinding</span>(<span style="color:#a31515;">"userNameForCert"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span><span style="font-size:10pt;color:green;font-family:'Courier New';">//ACS(STS) signing certificate...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> certData = GetACSCertificate();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:green;font-family:'Courier New';">//only public key cert. use to secure communication.</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> acsCert = <span style="color:blue;">new</span> <span style="color:#2b91af;">X509Certificate2</span>(certData);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> identity = <span style="color:blue;">new</span> <span style="color:#2b91af;">X509CertificateEndpointIdentity</span>(acsCert);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> epa = <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:blue;">new</span> <span style="color:#2b91af;">Uri</span>(<span style="color:#a31515;">"http://accesscontrol.windows.net/sts/mssds.com/username for certificate feb2005"</span>), identity);</span><span style="font-size:10pt;font-family:'Courier New';">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> trustVersion = <span style="color:#2b91af;">TrustVersion</span>.WSTrustFeb2005;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> clientCredentials = <span style="color:blue;">new</span> <span style="color:#2b91af;">ClientCredentials</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">clientCredentials.UserName.UserName = SolutionUserName;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">clientCredentials.UserName.Password = SolutionPassword;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';"></span>&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">WSTrustClient</span><span style="font-size:10pt;font-family:'Courier New';"> client = <span style="color:blue;">new</span> <span style="color:#2b91af;">WSTrustClient</span>(binding, epa, trustVersion, clientCredentials);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">RequestSecurityToken</span><span style="font-size:10pt;font-family:'Courier New';"> rst = <span style="color:blue;">new</span> <span style="color:#2b91af;">RequestSecurityToken</span>(<span style="color:#2b91af;">RequestTypeConstants</span>.Issue, <span style="color:#2b91af;">KeyTypeConstants</span>.Symmetric);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">rst.AppliesTo = <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:#a31515;">"https://data.database.windows.net/v1"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">RequestSecurityTokenResponse</span><span style="font-size:10pt;font-family:'Courier New';"> rstr;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;background:yellow;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;background:yellow;font-family:'Courier New';"> samltok = client.Issue(rst, <span style="color:blue;">out</span> rstr);</span><span style="color:#1f497d;"></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><font color="#000000">Here is the binding configuration I used for talking to ACS:</font></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">binding</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">name</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">userNameForCert</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">security</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">mode</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">Message</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">message</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">clientCredentialType</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">UserName</span>"<span style="color:blue;"> </span><span style="color:red;">negotiateServiceCredential</span><span style="color:blue;">=</span>"<span style="color:blue;">false</span>"</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-size:10pt;color:red;font-family:'Courier New';">establishSecurityContext</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">false</span>"<span style="color:blue;"> /&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;/<span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">security</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">&gt;</span></span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp; &lt;/<span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">binding</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">&gt;</span><span style="color:#1f497d;"></span></span></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><font color="#000000">Step 2: Forward this token to SDS when creating a new container.</font></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><font color="#000000">I have generated the SDS proxy (and other classes) by simply doing an “Add Service Reference” from inside visual studio. SDS metadata is exposed at:</font> </span><span style="font-size:10pt;color:blue;font-family:'Courier New';"><a href="https://database.windows.net/soap/v1/">https://database.windows.net/soap/v1/</a></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> sdsBinding = <span style="color:blue;">new</span> <span style="color:#2b91af;">CustomBinding</span>(<span style="color:#a31515;">"sitka"</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> sdsClient = <span style="color:blue;">new</span> SDS.<span style="color:#2b91af;">SitkaSoapServiceClient</span>(sdsBinding,</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; <span style="color:blue;">new</span> <span style="color:#2b91af;">EndpointAddress</span>(<span style="color:#a31515;">"https://data.database.windows.net/soap/v1/zurich"</span>));</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">FederatedClientCredentials</span><span style="font-size:10pt;font-family:'Courier New';">.ConfigureChannelFactory(sdsClient.ChannelFactory);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> sdsProxy = sdsClient.ChannelFactory.CreateChannelWithIssuedToken(samltok);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> authorityScope = <span style="color:blue;">new</span> SDS.<span style="color:#2b91af;">Scope</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">authorityScope.AuthorityId = <span style="color:#a31515;">"zamd01"</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';"></span>&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">var</span><span style="font-size:10pt;font-family:'Courier New';"> c1 = <span style="color:blue;">new</span> SDS.<span style="color:#2b91af;">Container</span>();</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">c1.Id = <span style="color:#a31515;">"NewContainerId"</span>;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';">sdsProxy.Create(authorityScope, c1);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:#2b91af;font-family:'Courier New';">Console</span><span style="font-size:10pt;font-family:'Courier New';">.WriteLine(<span style="color:#a31515;">"New container is created..."</span>);</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"></span>&nbsp;</p>
+<p class="MsoNormal"><span style="font-size:10pt;font-family:'Courier New';"><font color="#000000">SDS binding looks like this:</font></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">binding</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">name</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">sitka</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">security</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">authenticationMode</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">IssuedTokenOverTransport</span>"<span style="color:blue;">&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">issuedTokenParameters</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">issuer</span><span style="font-size:10pt;color:blue;font-family:'Courier New';"> </span><span style="font-size:10pt;color:red;font-family:'Courier New';">address</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">=</span><span style="font-size:10pt;font-family:'Courier New';">"<span style="color:blue;">http://dummy</span>"<span style="color:blue;"> </span><span style="color:red;">binding</span><span style="color:blue;">=</span>"<span style="color:blue;">basicHttpBinding</span>"<span style="color:blue;">/&gt;</span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">issuedTokenParameters</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">&gt;</span></span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;/<span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">security</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">&gt;</span></span></span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp;&nbsp;&nbsp; &lt;</span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">httpsTransport</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">/&gt;</span></p>
+<p class="MsoNormal"><span style="font-size:10pt;color:blue;font-family:'Courier New';">&nbsp; &lt;/<span><span style="font-size:10pt;color:#a31515;font-family:'Courier New';">binding</span><span style="font-size:10pt;color:blue;font-family:'Courier New';">&gt;</span></span></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><font color="#000000">And here is a snapshot of my SDS account highlighting the newly created container.</font></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;"><img height="343" src="{{ site.baseurl }}/assets/image003.jpg" width="419" border="0" /></span><span style="color:#1f497d;"></span></p>
+<p class="MsoNormal"><span style="color:#1f497d;">&nbsp;</span></p>
+</div>
