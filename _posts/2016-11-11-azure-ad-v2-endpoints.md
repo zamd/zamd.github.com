@@ -9,12 +9,6 @@ categories:
 - Auth0
 tags:
 - Auth0
-author:
-  login: zamd
-  email: zulfiqar.ahmed@gmail.com
-  display_name: zamd
-  first_name: ''
-  last_name: ''
 ---
 
 ##Auth0
